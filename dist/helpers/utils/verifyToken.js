@@ -16,7 +16,7 @@ const verifyToken = (0, asyncHandler_1.default)(async (req, res, next) => {
             userId: decoded.userId,
             _id: decoded._id,
             username: decoded.username,
-            isAdmin: decoded.isAdmin
+            isAdmin: decoded.isAdmin,
         };
         req.user = user;
         next();
