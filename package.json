@@ -8,7 +8,7 @@
     "backend": "nodemon src/index.ts",
     "frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
-    "build": "tsc"
+    "build": "tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",
