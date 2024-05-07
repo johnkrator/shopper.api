@@ -19,7 +19,7 @@ const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, r
 
     // Check if the verification code and its expiration date exist
     if (!user.verificationCode || !user.verificationCodeExpires) {
-        return res.status(400).json({message: "Verification code not found"});
+        return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
     }
 
     // Check if the verification code has expired
