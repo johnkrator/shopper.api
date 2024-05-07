@@ -20,6 +20,12 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 
+app.get("/", (req, res) => {
+    res.status(200).send("Welcome to the Shopper API");
+});
+
+app.use("/public", express.static(path.join(__dirname, "uploads")));
+
 app.use("/api/users", userRoutes);
 app.use("/api/user", userLocationRoutes);
 app.use("/api/products", productRoutes);
