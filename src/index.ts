@@ -24,8 +24,6 @@ app.get("/", (req, res) => {
     res.status(200).send("Welcome to the Shopper API");
 });
 
-app.use("/public", express.static(path.join(__dirname, "uploads")));
-
 app.use("/api/users", userRoutes);
 app.use("/api/user", userLocationRoutes);
 app.use("/api/products", productRoutes);
@@ -41,6 +39,7 @@ app.get("/api/config/paypal", (req, res) => {
     });
 });
 
+// Serving the static files from the public folder
 app.use("/public", express.static(path.join(path.resolve(), "/uploads")));
 
 const port = process.env.PORT || 5000;
