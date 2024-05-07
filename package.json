@@ -8,8 +8,15 @@
     "backend": "nodemon src/index.ts",
     "frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
-    "build": "tsc -p tsconfig.json --outdir dist"
+    "build": "rimraf dist && tsc",
+    "ts.check": "tsc --project tsconfig.json",
+    "add-build": "git add dist"
   },
+  "pre-commit": [
+    "ts.check",
+    "build",
+    "add-build"
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -30,6 +37,8 @@
     "mongoose": "^8.3.3",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.13",
+    "pre-commit": "^1.2.2",
+    "rimraf": "^5.0.5",
     "sharp": "^0.33.3"
   },
   "devDependencies": {
