@@ -1,7 +1,7 @@
 import path from "node:path";
 import cookieParser from "cookie-parser";
 import connectDB from "./database/config/db";
-import express from "express";
+import express, {Application} from "express";
 import dotenv from "dotenv";
 import userRoutes from "./routes/user.routes";
 import userLocationRoutes from "./routes/userLocation.routes";
@@ -12,7 +12,7 @@ import uploadRoutes from "./routes/upload.routes";
 
 dotenv.config();
 
-const app = express();
+const app: Application = express();
 
 connectDB();
 
