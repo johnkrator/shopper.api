@@ -9,24 +9,24 @@ import {
 } from "../controllers/product.controller";
 import checkId from "../helpers/middlewares/checkId";
 
-const router = express.Router();
+const productRouter = express.Router();
 
-router
+productRouter
     .route("/")
     .post(authenticate, authorizeAdmin, addProduct)
     .get(fetchProducts);
 
-router.route("/all-products").get(fetchAllProducts);
-router.route("/:id/reviews").post(authenticate, checkId, addProductReview);
-router.route("/filtered-products").post(filterProducts);
+productRouter.route("/all-products").get(fetchAllProducts);
+productRouter.route("/:id/reviews").post(authenticate, checkId, addProductReview);
+productRouter.route("/filtered-products").post(filterProducts);
 
-router.get("/top", fetchTopProducts);
-router.get("/new", fetchNewProducts);
+productRouter.get("/top", fetchTopProducts);
+productRouter.get("/new", fetchNewProducts);
 
-router
+productRouter
     .route("/:id",)
     .get(getProductById)
     .put(authenticate, authorizeAdmin, updateProduct)
     .delete(authenticate, authorizeAdmin, removeProduct);
 
-export default router;
+export default productRouter;
