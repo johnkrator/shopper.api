@@ -8,17 +8,17 @@ import {
     updateCategory
 } from "../controllers/category.controller";
 
-const router = express.Router();
+const categoryRouter = express.Router();
 
-router.route("/")
+categoryRouter.route("/")
     .post(authenticate, authorizeAdmin, createCategory);
 
-router.route("/:id")
+categoryRouter.route("/:id")
     .put(authenticate, authorizeAdmin, updateCategory)
     .delete(authenticate, authorizeAdmin, deleteCategory)
     .get(getCategory);
 
-router.route("/")
+categoryRouter.route("/")
     .get(getCategories);
 
-export default router;
+export default categoryRouter;

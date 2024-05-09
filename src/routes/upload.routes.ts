@@ -4,10 +4,10 @@ import {
     uploadImageDirectlyOnCloudinary
 } from "../controllers/upload.controller";
 
-const router = express.Router();
+const uploadRouter = express.Router();
 
 // Route for uploading an image
-router.route("/local").post(uploadImage);
-router.route("/cloudinary").post(uploadImageDirectlyOnCloudinary);
+uploadRouter.route("/local").post(uploadImage);
+uploadRouter.route("/cloudinary").post(uploadImageDirectlyOnCloudinary);
 
-export default router;
+export default uploadRouter;

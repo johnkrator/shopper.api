@@ -1,0 +1,174 @@
+openapi: 3.0.0
+info:
+  title: Shopper API
+  version: 1.0.0
+  description: This is a simple API for an online shop
+servers:
+  - url: http://localhost:5000
+    description: Development server
+paths:
+  /:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /login:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /change-password:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /verify-email:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /resendVerificationCode:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /resendResetToken:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /forgotPassword:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /resetPassword:
+    put:
+      summary: ''
+      description: ''
+      parameters: []
+  /logout:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /google:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /facebook:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /github:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /apple:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /profile:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /:id:
+    delete:
+      summary: ''
+      description: ''
+      parameters: []
+    put:
+      summary: ''
+      description: ''
+      parameters: []
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /assign-role/:id:
+    put:
+      summary: ''
+      description: ''
+      parameters: []
+  /delete-role/:id:
+    put:
+      summary: ''
+      description: ''
+      parameters: []
+  /mine:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /total-orders:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /total-sales:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /total-sales-by-date:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /:id/pay:
+    put:
+      summary: ''
+      description: ''
+      parameters: []
+  /:id/deliver:
+    put:
+      summary: ''
+      description: ''
+      parameters: []
+  /all-products:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /:id/reviews:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /filtered-products:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /top:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /new:
+    get:
+      summary: ''
+      description: ''
+      parameters: []
+  /local:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /cloudinary:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+  /location:
+    post:
+      summary: ''
+      description: ''
+      parameters: []
+components: {}
+tags: []

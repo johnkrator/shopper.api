@@ -1,8 +1,8 @@
 import express from "express";
 import {getCurrentLocation} from "../controllers/userLocation.controller";
 
-const router = express.Router();
+const userLocationRouter = express.Router();
 
-router.post("/location", getCurrentLocation);
+userLocationRouter.post("/location", getCurrentLocation);
 
-export default router;
+export default userLocationRouter;

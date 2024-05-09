@@ -11,38 +11,38 @@ import {authenticate, authorizeAdmin} from "../helpers/middlewares/authmiddlewar
 import verifyEmail from "../helpers/utils/verifyEmail";
 import verifyToken from "../helpers/utils/verifyToken";
 
-const router = express.Router();
+const userRouter = express.Router();
 
-router.route("/")
+userRouter.route("/")
     .post(createUser)
     .get(authenticate, authorizeAdmin, getAllUsers);
 
-router.post("/login", loginUser);
-router.post("/change-password", verifyToken, changePassword);
-router.post("/verify-email", verifyEmail);
-router.post("/resendVerificationCode", resendVerificationCode);
-router.post("/resendResetToken", resendResetToken);
-router.post("/forgotPassword", forgotPassword);
-router.put("/resetPassword", resetPassword); // breaking
-router.post("/logout", logoutCurrentUser);
+userRouter.post("/login", loginUser);
+userRouter.post("/change-password", verifyToken, changePassword);
+userRouter.post("/verify-email", verifyEmail);
+userRouter.post("/resendVerificationCode", resendVerificationCode);
+userRouter.post("/resendResetToken", resendResetToken);
+userRouter.post("/forgotPassword", forgotPassword);
+userRouter.put("/resetPassword", resetPassword); // breaking
+userRouter.post("/logout", logoutCurrentUser);
 
 // oauth routes
-router.post("/google", handleGoogleAuth);
-router.post("/facebook", handleFacebookAuth);
-router.post("/github", handleGitHubAuth);
-router.post("/apple", handleAppleAuth);
+userRouter.post("/google", handleGoogleAuth);
+userRouter.post("/facebook", handleFacebookAuth);
+userRouter.post("/github", handleGitHubAuth);
+userRouter.post("/apple", handleAppleAuth);
 
-router.route("/profile")
+userRouter.route("/profile")
     .get(authenticate, getCurrentUserProfile)
     .put(authenticate, updateCurrentUserProfile);
 
 // Admin routes
-router.route("/:id")
+userRouter.route("/:id")
     .delete(authenticate, authorizeAdmin, deleteUserById)
     .get(authenticate, authorizeAdmin, getUserById)
     .put(authenticate, authorizeAdmin, updateUserById);
 
-router.put("/assign-role/:id", authenticate, authorizeAdmin, assignRole);
-router.put("/delete-role/:id", authenticate, authorizeAdmin, deleteRole);
+userRouter.put("/assign-role/:id", authenticate, authorizeAdmin, assignRole);
+userRouter.put("/delete-role/:id", authenticate, authorizeAdmin, deleteRole);
 
-export default router;
+export default userRouter;
