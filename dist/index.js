@@ -14,6 +14,7 @@ const product_routes_1 = __importDefault(require("./routes/product.routes"));
 const category_routes_1 = __importDefault(require("./routes/category.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
+const errorMiddleware_1 = require("./helpers/middlewares/errorMiddleware");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 (0, db_1.default)();
@@ -38,6 +39,9 @@ app.get("/api/config/paypal", (req, res) => {
 });
 // Serving the static files from the public folder
 app.use("/public", express_1.default.static(node_path_1.default.join(node_path_1.default.resolve(), "/uploads")));
+// Error middleware
+app.use(errorMiddleware_1.notFoundErrorHandler);
+app.use(errorMiddleware_1.generalErrorHandler);
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
