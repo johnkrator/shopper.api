@@ -1,7 +1,7 @@
 import path from "node:path";
 import cookieParser from "cookie-parser";
 import connectDB from "./database/config/db";
-import express, {Application} from "express";
+import express, {Application, Request, Response} from "express";
 import dotenv from "dotenv";
 import UserRoutes from "./routes/user.routes";
 import UserLocationRoutes from "./routes/userLocation.routes";
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 
-app.get("/", (req, res) => {
+app.get("/api", (req: Request, res: Response) => {
     res.status(200).send("Welcome to the Shopper API");
 });
 
