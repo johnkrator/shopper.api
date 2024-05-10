@@ -10,8 +10,6 @@ import CategoryRoutes from "./routes/category.routes";
 import OrderRoutes from "./routes/order.routes";
 import UploadRoutes from "./routes/upload.routes";
 import {generalErrorHandler, notFoundErrorHandler} from "./helpers/middlewares/errorMiddleware";
-import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "./helpers/swaggerConfig/swaggerOptions";
 
 dotenv.config();
 
@@ -22,9 +20,6 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
-
-// Serve Swagger documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get("/api", (req: Request, res: Response) => {
     res.status(200).send("Welcome to the Shopper API");
