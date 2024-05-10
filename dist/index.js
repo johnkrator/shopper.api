@@ -15,16 +15,12 @@ const category_routes_1 = __importDefault(require("./routes/category.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
 const errorMiddleware_1 = require("./helpers/middlewares/errorMiddleware");
-const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
-const swaggerOptions_1 = __importDefault(require("./helpers/swaggerConfig/swaggerOptions"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 (0, db_1.default)();
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
-// Serve Swagger documentation
-app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerOptions_1.default));
 app.get("/api", (req, res) => {
     res.status(200).send("Welcome to the Shopper API");
 });
