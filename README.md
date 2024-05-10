@@ -3,6 +3,14 @@
 This repository contains backend API endpoints for an E-Commerce application. The API is built using Node.js, Express,
 and MongoDB. It includes functionality for managing products, categories, orders, users, and authentication.
 
+## Postman Documentation
+
+https://documenter.getpostman.com/view/18462993/2sA3JM7226
+
+## Deployed URL
+
+https://shopper-puce.vercel.app/api
+
 ## Features
 
 - **Products**: CRUD operations for managing products, including adding, updating, deleting, and fetching products.
