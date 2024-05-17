@@ -1,11 +1,12 @@
 import nodemailer, {Transporter, SendMailOptions} from "nodemailer";
+import process from "node:process";
 
 const sendResetPasswordEmail = async (email: string, resetUrl: string): Promise<void> => {
     const transporter: Transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-            user: "chukwuchidieberejohn@gmail.com",
-            pass: "qiiwarsjtrfhsvgc" // Be careful with sensitive information like passwords
+            user: process.env.EMAIL_USERNAME,
+            pass: process.env.EMAIL_PASSWORD
         }
     });
 

@@ -8,7 +8,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const db_1 = __importDefault(require("./database/config/db"));
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const userLocation_routes_1 = __importDefault(require("./routes/userLocation.routes"));
 const product_routes_1 = __importDefault(require("./routes/product.routes"));
 const category_routes_1 = __importDefault(require("./routes/category.routes"));
@@ -24,7 +24,7 @@ app.use((0, cookie_parser_1.default)());
 app.get("/api", (req, res) => {
     res.status(200).send("Welcome to the Shopper API");
 });
-app.use("/api/users", user_routes_1.default);
+app.use("/api/auth", auth_routes_1.default);
 app.use("/api/user", userLocation_routes_1.default);
 app.use("/api/products", product_routes_1.default);
 app.use("/api/category", category_routes_1.default);

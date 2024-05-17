@@ -245,7 +245,6 @@ const updateCurrentUserProfile = asyncHandler(async (req: ICustomRequest, res: R
     }
 });
 
-
 const deleteUserById = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const userId = req.params.id;
     const currentUser = req.user;
