@@ -8,25 +8,33 @@ interface Response {
     cookie(name: string, value: string, options: any): Response;
 }
 
-const generateToken = (res: Response, userId: string, username: string, isAdmin: boolean, roles: string[]) => {
+const generateTokens = (userId: string, username: string, isAdmin: boolean, roles: string[]) => {
     const secret: Secret | undefined = process.env.JWT_SECRET;
 
     if (!secret) {
         throw new Error("JWT secret is not defined");
     }
 
-    const token = jwt.sign({userId, username, isAdmin, roles}, secret, {expiresIn: "7d"});
+    const accessToken = jwt.sign({userId, username, isAdmin, roles}, secret, {expiresIn: "15m"});
+    const refreshToken = jwt.sign({userId, username, isAdmin, roles}, secret, {expiresIn: "7d"});
 
-    res.cookie("jwt", token, {
+    return {accessToken, refreshToken};
+};
+
+const setTokenCookies = (res: Response, accessToken: string, refreshToken: string) => {
+    res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        // secure: process.env.NODE_ENV === "production", // Secure in production. Meaning that the cookie will only be sent over HTTPS for production.
-        secure: process.env.NODE_ENV !== "test", // Secure unless in test environment. Meaning that the cookie will only be sent over HTTPS for both development and production.
+        secure: process.env.NODE_ENV !== "test",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "test",
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
     });
-
-    return token;
 };
 
-export default generateToken;
-
+export {generateTokens, setTokenCookies};
