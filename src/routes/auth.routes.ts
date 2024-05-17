@@ -6,7 +6,7 @@ import {
     getCurrentUserProfile, getUserById, handleAppleAuth, handleFacebookAuth, handleGitHubAuth, handleGoogleAuth,
     loginUser,
     logoutCurrentUser, resendResetToken, resendVerificationCode, resetPassword, updateCurrentUserProfile, updateUserById
-} from "../controllers/user.controller";
+} from "../controllers/auth.controller";
 import {authenticate, authorizeAdmin} from "../helpers/middlewares/authmiddleware";
 import verifyEmail from "../helpers/utils/verifyEmail";
 import verifyToken from "../helpers/utils/verifyToken";

@@ -13,12 +13,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const nodemailer_1 = __importDefault(require("nodemailer"));
+const node_process_1 = __importDefault(require("node:process"));
 const sendResetPasswordEmail = (email, resetUrl) => __awaiter(void 0, void 0, void 0, function* () {
     const transporter = nodemailer_1.default.createTransport({
         service: "gmail",
         auth: {
-            user: "chukwuchidieberejohn@gmail.com",
-            pass: "qiiwarsjtrfhsvgc" // Be careful with sensitive information like passwords
+            user: node_process_1.default.env.EMAIL_USERNAME,
+            pass: node_process_1.default.env.EMAIL_PASSWORD
         }
     });
     const message = {

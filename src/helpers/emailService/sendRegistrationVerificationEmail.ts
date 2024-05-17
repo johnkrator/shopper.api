@@ -1,11 +1,12 @@
 import nodemailer, {Transporter, SendMailOptions} from "nodemailer";
+import * as process from "node:process";
 
 const sendRegistrationVerificationEmail = async (email: string, verificationCode: number | string): Promise<void> => {
     let transporter: Transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-            user: "chukwuchidieberejohn@gmail.com",
-            pass: "qiiwarsjtrfhsvgc" // Be careful with sensitive information like passwords
+            user: process.env.EMAIL_USERNAME,
+            pass: process.env.EMAIL_PASSWORD
         }
     });
 

@@ -634,4 +634,4 @@ const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaite
     }
 }));
 exports.handleAppleAuth = handleAppleAuth;
-//# sourceMappingURL=user.controller.js.map
+//# sourceMappingURL=auth.controller.js.map
