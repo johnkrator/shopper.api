@@ -17,6 +17,8 @@ export interface IUser extends Document {
         latitude: number;
         longitude: number;
     };
+    failedLoginAttempts: number;
+    lockUntil: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -41,6 +43,8 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
         latitude: {type: Number},
         longitude: {type: Number},
     },
+    failedLoginAttempts: {type: Number, default: 0},
+    lockUntil: {type: Date, default: null},
 }, {timestamps: true});
 
 // Pre-save middleware to update isAdmin field based on roles

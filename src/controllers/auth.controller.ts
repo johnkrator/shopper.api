@@ -6,7 +6,7 @@ import User from "../database/models/user.model";
 import sendRegistrationVerificationEmail from "../helpers/emailService/sendRegistrationVerificationEmail";
 import crypto from "crypto";
 import sendResetPasswordEmail from "../helpers/emailService/sendResetPasswordEmail";
-import generateToken from "../helpers/utils/SessionToken";
+import {generateTokens, setTokenCookies} from "../helpers/utils/SessionToken";
 
 interface Response {
     status(code: number): Response;
@@ -64,7 +64,14 @@ const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
     try {
         await newUser.save();
 
-        generateToken(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
+        const {accessToken, refreshToken} = generateTokens(
+            newUser._id,
+            newUser.username,
+            newUser.isAdmin,
+            newUser.roles
+        );
+
+        setTokenCookies(res, accessToken, refreshToken);
         res.status(201).json({
             _id: newUser._id,
             username: newUser.username,
@@ -98,21 +105,53 @@ const loginUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
                 });
         }
 
+        // Check if the account is locked
+        const currentTime = new Date();
+        if (
+            existingUser.failedLoginAttempts >= 5 &&
+            currentTime < existingUser.lockUntil
+        ) {
+            return res.status(401).json({
+                message: `Account locked until ${existingUser.lockUntil}. Please try again later.`,
+            });
+        }
+
         const isPasswordValid = await bcrypt.compare(
             password,
             existingUser.password
         );
 
         if (isPasswordValid) {
-            generateToken(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+            // Reset failed login attempts on successful login
+            existingUser.failedLoginAttempts = 0;
+            existingUser.lockUntil = null;
+            await existingUser.save();
+
+            // Generate and return access and refresh tokens
+            const {accessToken, refreshToken} = generateTokens(
+                existingUser._id,
+                existingUser.username,
+                existingUser.isAdmin,
+                existingUser.roles
+            );
 
             res.status(200).json({
                 _id: existingUser._id,
                 username: existingUser.username,
                 email: existingUser.email,
                 isAdmin: existingUser.isAdmin,
+                accessToken,
+                refreshToken,
             });
         } else {
+            // Increment failed login attempts and lock account if necessary
+            existingUser.failedLoginAttempts += 1;
+            if (existingUser.failedLoginAttempts >= 5) {
+                const lockUntil = new Date(Date.now() + 60 * 1000); // 1 minute from now
+                existingUser.lockUntil = lockUntil;
+            }
+            await existingUser.save();
+
             return res.status(400).json({message: "Invalid credentials"});
         }
     } else {
@@ -171,7 +210,7 @@ const changePassword = asyncHandler(async (req: ICustomRequest, res: Response) =
     }
 });
 
-const logoutCurrentUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
+const logoutCurrentUser = asyncHandler(async (_req: ICustomRequest, res: Response) => {
     res.cookie("jwt", "", {
         httpOnly: true,
         secure: true,
@@ -232,7 +271,14 @@ const updateCurrentUserProfile = asyncHandler(async (req: ICustomRequest, res: R
 
         const updatedUser = await user.save();
 
-        generateToken(res, updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
+        const {accessToken, refreshToken} = generateTokens(
+            updatedUser._id,
+            updatedUser.username,
+            updatedUser.isAdmin,
+            updatedUser.roles
+        );
+
+        setTokenCookies(res, accessToken, refreshToken);
 
         res.status(200).json({
             _id: updatedUser._id,

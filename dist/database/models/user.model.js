@@ -24,6 +24,8 @@ const userSchema = new mongoose_1.default.Schema({
         latitude: { type: Number },
         longitude: { type: Number },
     },
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockUntil: { type: Date, default: null },
 }, { timestamps: true });
 // Pre-save middleware to update isAdmin field based on roles
 userSchema.pre("save", function (next) {

@@ -32,7 +32,7 @@ const user_model_1 = __importDefault(require("../database/models/user.model"));
 const sendRegistrationVerificationEmail_1 = __importDefault(require("../helpers/emailService/sendRegistrationVerificationEmail"));
 const crypto_1 = __importDefault(require("crypto"));
 const sendResetPasswordEmail_1 = __importDefault(require("../helpers/emailService/sendResetPasswordEmail"));
-const SessionToken_1 = __importDefault(require("../helpers/utils/SessionToken"));
+const SessionToken_1 = require("../helpers/utils/SessionToken");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     // Password validation regex
@@ -66,7 +66,8 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
     });
     try {
         yield newUser.save();
-        (0, SessionToken_1.default)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
+        const { accessToken, refreshToken } = (0, SessionToken_1.generateTokens)(newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
+        (0, SessionToken_1.setTokenCookies)(res, accessToken, refreshToken);
         res.status(201).json({
             _id: newUser._id,
             username: newUser.username,
@@ -97,17 +98,39 @@ const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
                 message: "Email not verified. Please verify your email before logging in.",
             });
         }
+        // Check if the account is locked
+        const currentTime = new Date();
+        if (existingUser.failedLoginAttempts >= 5 &&
+            currentTime < existingUser.lockUntil) {
+            return res.status(401).json({
+                message: `Account locked until ${existingUser.lockUntil}. Please try again later.`,
+            });
+        }
         const isPasswordValid = yield bcryptjs_1.default.compare(password, existingUser.password);
         if (isPasswordValid) {
-            (0, SessionToken_1.default)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+            // Reset failed login attempts on successful login
+            existingUser.failedLoginAttempts = 0;
+            existingUser.lockUntil = null;
+            yield existingUser.save();
+            // Generate and return access and refresh tokens
+            const { accessToken, refreshToken } = (0, SessionToken_1.generateTokens)(existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
             res.status(200).json({
                 _id: existingUser._id,
                 username: existingUser.username,
                 email: existingUser.email,
                 isAdmin: existingUser.isAdmin,
+                accessToken,
+                refreshToken,
             });
         }
         else {
+            // Increment failed login attempts and lock account if necessary
+            existingUser.failedLoginAttempts += 1;
+            if (existingUser.failedLoginAttempts >= 5) {
+                const lockUntil = new Date(Date.now() + 60 * 1000); // 1 minute from now
+                existingUser.lockUntil = lockUntil;
+            }
+            yield existingUser.save();
             return res.status(400).json({ message: "Invalid credentials" });
         }
     }
@@ -153,7 +176,7 @@ const changePassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
     }
 }));
 exports.changePassword = changePassword;
-const logoutCurrentUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const logoutCurrentUser = (0, asyncHandler_1.default)((_req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.cookie("jwt", "", {
         httpOnly: true,
         secure: true,
@@ -209,7 +232,8 @@ const updateCurrentUserProfile = (0, asyncHandler_1.default)((req, res) => __awa
             user.password = yield bcryptjs_1.default.hash(req.body.password, salt);
         }
         const updatedUser = yield user.save();
-        (0, SessionToken_1.default)(res, updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
+        const { accessToken, refreshToken } = (0, SessionToken_1.generateTokens)(updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
+        (0, SessionToken_1.setTokenCookies)(res, accessToken, refreshToken);
         res.status(200).json({
             _id: updatedUser._id,
             username: updatedUser.username,
