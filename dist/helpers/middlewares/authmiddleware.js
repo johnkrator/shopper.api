@@ -32,21 +32,21 @@ const authenticate = asyncHandler((req, res, next) => __awaiter(void 0, void 0, 
         }
         catch (error) {
             res.status(401);
-            throw new Error("Not authorized. Please login again.");
+            next(new Error("Not authorized. Please login again."));
         }
     }
     else {
         res.status(403);
-        throw new Error("Forbidden. Admin access only");
+        next(new Error("Forbidden. Admin access only"));
     }
 }));
 exports.authenticate = authenticate;
-const authorizeAdmin = asyncHandler((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const authorizeAdmin = asyncHandler((req, _res, next) => __awaiter(void 0, void 0, void 0, function* () {
     if (req.user && req.user.isAdmin) {
         next();
     }
     else {
-        res.status(401).send("Not authorized. Admins only.");
+        next(new Error("Not authorized. Admins only."));
     }
 }));
 exports.authorizeAdmin = authorizeAdmin;

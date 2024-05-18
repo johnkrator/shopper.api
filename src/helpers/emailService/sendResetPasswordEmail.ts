@@ -11,7 +11,7 @@ const sendResetPasswordEmail = async (email: string, resetUrl: string): Promise<
     });
 
     const message: SendMailOptions = {
-        from: "chukwuchidieberejohn@gmail.com",
+        from: process.env.FROM_EMAIL,
         to: email,
         subject: "Reset Password",
         text: `Click the following link to reset your password: ${resetUrl}`,

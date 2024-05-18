@@ -23,7 +23,7 @@ const sendResetPasswordEmail = (email, resetUrl) => __awaiter(void 0, void 0, vo
         }
     });
     const message = {
-        from: "chukwuchidieberejohn@gmail.com",
+        from: node_process_1.default.env.FROM_EMAIL,
         to: email,
         subject: "Reset Password",
         text: `Click the following link to reset your password: ${resetUrl}`,
