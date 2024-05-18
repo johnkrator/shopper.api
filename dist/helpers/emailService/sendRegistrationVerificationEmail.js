@@ -46,7 +46,7 @@ const sendRegistrationVerificationEmail = (email, verificationCode) => __awaiter
         }
     });
     let message = {
-        from: "chukwuchidieberejohn@gmail.com",
+        from: process.env.FROM_EMAIL,
         to: email,
         subject: "Confirm Registration Email",
         text: `Your verification code is: ${verificationCode}`,

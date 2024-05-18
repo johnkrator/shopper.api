@@ -1,6 +1,6 @@
 import jwt, {Secret, JwtPayload} from "jsonwebtoken";
 import {Response, NextFunction} from "express";
-import asyncHandler, {ICustomRequest, IUser} from "../middlewares/asyncHandler";
+import asyncHandler, {ICustomRequest, IUser} from "./asyncHandler";
 
 const verifyToken = asyncHandler(async (req: ICustomRequest, res: Response, next: NextFunction) => {
     const token = req.cookies.jwt;

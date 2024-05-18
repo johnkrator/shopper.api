@@ -3,7 +3,8 @@ import cookieParser from "cookie-parser";
 import connectDB from "./database/config/db";
 import express, {Application, Request, Response} from "express";
 import dotenv from "dotenv";
-import UserRoutes from "./routes/auth.routes";
+import AuthRoutes from "./routes/auth.routes";
+import UserRoutes from "./routes/users.routes";
 import UserLocationRoutes from "./routes/userLocation.routes";
 import ProductRoutes from "./routes/product.routes";
 import CategoryRoutes from "./routes/category.routes";
@@ -21,11 +22,12 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 
-app.get("/api", (req: Request, res: Response) => {
+app.get("/api", (_req: Request, res: Response) => {
     res.status(200).send("Welcome to the Shopper API");
 });
 
-app.use("/api/auth", UserRoutes);
+app.use("/api/auth", AuthRoutes);
+app.use("/api/users", UserRoutes);
 app.use("/api/user", UserLocationRoutes);
 app.use("/api/products", ProductRoutes);
 app.use("/api/category", CategoryRoutes);

@@ -49,7 +49,10 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
 
 // Pre-save middleware to update isAdmin field based on roles
 userSchema.pre<IUser>("save", function (next) {
-    this.isAdmin = this.roles.includes("admin");
+    // Only update isAdmin if roles have been modified
+    if (this.isModified("roles")) {
+        this.isAdmin = this.roles.includes("admin");
+    }
     next();
 });
 
