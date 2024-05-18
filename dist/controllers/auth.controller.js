@@ -208,7 +208,7 @@ const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
     // Check if the previous reset password token has expired
     if (user.resetPasswordExpires && new Date(user.resetPasswordExpires) < new Date()) {
         resetPasswordToken = crypto_1.default.randomBytes(20).toString("hex");
-        resetPasswordExpires = Date.now() + 60000; // 1 minute from now
+        resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
     }
     else {
         resetPasswordToken = user.resetPasswordToken || crypto_1.default.randomBytes(20).toString("hex");
@@ -269,7 +269,7 @@ const resendResetToken = (0, asyncHandler_1.default)((req, res) => __awaiter(voi
     }
     // Generate a new reset password token
     const resetPasswordToken = crypto_1.default.randomBytes(20).toString("hex");
-    const resetPasswordExpires = Date.now() + 60000; // 1 hour from now
+    const resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
     // Hash the reset token
     // Set the new reset password token and expiration time
     user.resetPasswordToken = crypto_1.default
