@@ -23,16 +23,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleAppleAuth = exports.handleGitHubAuth = exports.handleFacebookAuth = exports.handleGoogleAuth = exports.resendResetToken = exports.resendVerificationCode = exports.resetPassword = exports.forgotPassword = exports.deleteRole = exports.assignRole = exports.updateUserById = exports.getUserById = exports.deleteUserById = exports.updateCurrentUserProfile = exports.getCurrentUserProfile = exports.getAllUsers = exports.logoutCurrentUser = exports.changePassword = exports.loginUser = exports.createUser = void 0;
+exports.handleAppleAuth = exports.handleGitHubAuth = exports.handleFacebookAuth = exports.handleGoogleAuth = exports.resendResetToken = exports.resendVerificationCode = exports.resetPassword = exports.forgotPassword = exports.logoutCurrentUser = exports.changePassword = exports.verifyEmail = exports.loginUser = exports.createUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const mongoose_1 = __importDefault(require("mongoose"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const asyncHandler_1 = __importDefault(require("../helpers/middlewares/asyncHandler"));
 const user_model_1 = __importDefault(require("../database/models/user.model"));
 const sendRegistrationVerificationEmail_1 = __importDefault(require("../helpers/emailService/sendRegistrationVerificationEmail"));
 const crypto_1 = __importDefault(require("crypto"));
 const sendResetPasswordEmail_1 = __importDefault(require("../helpers/emailService/sendResetPasswordEmail"));
-const SessionToken_1 = require("../helpers/utils/SessionToken");
+const SessionToken_1 = require("../helpers/middlewares/SessionToken");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     // Password validation regex
@@ -66,8 +65,7 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
     });
     try {
         yield newUser.save();
-        const { accessToken, refreshToken } = (0, SessionToken_1.generateTokens)(newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
-        (0, SessionToken_1.setTokenCookies)(res, accessToken, refreshToken);
+        (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
         res.status(201).json({
             _id: newUser._id,
             username: newUser.username,
@@ -84,36 +82,21 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
 exports.createUser = createUser;
 const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res
-            .status(400)
-            .json({ message: "Please provide all the required fields" });
-    }
     const existingUser = yield user_model_1.default.findOne({ email });
     if (existingUser) {
-        if (!existingUser.isVerified) {
-            return res
-                .status(401)
-                .json({
-                message: "Email not verified. Please verify your email before logging in.",
-            });
+        if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
+            const timeUntilUnlock = Math.ceil((existingUser.lockUntil.getTime() - Date.now()) / 1000); // Calculate time until unlock in seconds
+            return res.status(401).json({ message: `Account locked. Please try again in ${timeUntilUnlock} seconds.` });
         }
-        // Check if the account is locked
-        const currentTime = new Date();
-        if (existingUser.failedLoginAttempts >= 5 &&
-            currentTime < existingUser.lockUntil) {
-            return res.status(401).json({
-                message: `Account locked until ${existingUser.lockUntil}. Please try again later.`,
-            });
+        if (!existingUser.isVerified) {
+            return res.status(401).json({ message: "Email not verified. Please verify your email before logging in." });
         }
         const isPasswordValid = yield bcryptjs_1.default.compare(password, existingUser.password);
         if (isPasswordValid) {
             // Reset failed login attempts on successful login
             existingUser.failedLoginAttempts = 0;
             existingUser.lockUntil = null;
-            yield existingUser.save();
-            // Generate and return access and refresh tokens
-            const { accessToken, refreshToken } = (0, SessionToken_1.generateTokens)(existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+            const { accessToken, refreshToken } = (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
             res.status(200).json({
                 _id: existingUser._id,
                 username: existingUser.username,
@@ -124,11 +107,10 @@ const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
             });
         }
         else {
-            // Increment failed login attempts and lock account if necessary
+            // Increment failed login attempts and lock user after 5 attempts
             existingUser.failedLoginAttempts += 1;
             if (existingUser.failedLoginAttempts >= 5) {
-                const lockUntil = new Date(Date.now() + 60 * 1000); // 1 minute from now
-                existingUser.lockUntil = lockUntil;
+                existingUser.lockUntil = new Date(Date.now() + 60 * 1000); // Lock user for 1 minute
             }
             yield existingUser.save();
             return res.status(400).json({ message: "Invalid credentials" });
@@ -139,6 +121,35 @@ const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
     }
 }));
 exports.loginUser = loginUser;
+const verifyEmail = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, verificationCode } = req.body;
+    // Find the user with the provided email
+    const user = yield user_model_1.default.findOne({ email });
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
+    // Check if the verification code and its expiration date exist
+    if (!user.verificationCode || !user.verificationCodeExpires) {
+        return res.status(400).json({ message: "Verification code not found or has expired. Please request a new one" });
+    }
+    // Check if the verification code has expired
+    if (user.verificationCodeExpires.getTime() < Date.now()) {
+        return res.status(400).json({ message: "Verification code has expired" });
+    }
+    // Check if the verification code matches
+    if (user.verificationCode === verificationCode) {
+        // Update the user's document to mark the email as verified
+        user.isVerified = true;
+        user.verificationCode = undefined; // Remove the verification code after successful verification
+        user.verificationCodeExpires = undefined; // Remove the verification code expiration date
+        yield user.save();
+        return res.status(200).json({ message: "Email verified successfully" });
+    }
+    else {
+        return res.status(400).json({ message: "Invalid verification code" });
+    }
+}));
+exports.verifyEmail = verifyEmail;
 const changePassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { currentPassword, newPassword } = req.body;
@@ -186,199 +197,6 @@ const logoutCurrentUser = (0, asyncHandler_1.default)((_req, res) => __awaiter(v
     res.status(200).json({ message: "Logged out successfully" });
 }));
 exports.logoutCurrentUser = logoutCurrentUser;
-const getAllUsers = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const startIndex = (page - 1) * limit;
-    const totalUsers = yield user_model_1.default.countDocuments({ isDeleted: false });
-    const users = yield user_model_1.default.find({ isDeleted: false })
-        .select("-password")
-        .skip(startIndex)
-        .limit(limit);
-    res.status(200).json({
-        users,
-        currentPage: page,
-        totalPages: Math.ceil(totalUsers / limit),
-        totalUsers,
-    });
-}));
-exports.getAllUsers = getAllUsers;
-const getCurrentUserProfile = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
-    const user = yield user_model_1.default.findById((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
-    if (user) {
-        res.json({
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            isAdmin: user.isAdmin,
-        });
-    }
-    else {
-        res.status(404).json({
-            message: "User not found",
-        });
-    }
-}));
-exports.getCurrentUserProfile = getCurrentUserProfile;
-const updateCurrentUserProfile = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c;
-    const user = yield user_model_1.default.findById((_c = req.user) === null || _c === void 0 ? void 0 : _c._id);
-    if (user) {
-        user.username = req.body.username || user.username;
-        user.email = req.body.email || user.email;
-        if (req.body.password) {
-            const salt = yield bcryptjs_1.default.genSalt(10);
-            user.password = yield bcryptjs_1.default.hash(req.body.password, salt);
-        }
-        const updatedUser = yield user.save();
-        const { accessToken, refreshToken } = (0, SessionToken_1.generateTokens)(updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
-        (0, SessionToken_1.setTokenCookies)(res, accessToken, refreshToken);
-        res.status(200).json({
-            _id: updatedUser._id,
-            username: updatedUser.username,
-            email: updatedUser.email,
-            isAdmin: updatedUser.isAdmin,
-        });
-    }
-    else {
-        res.status(404).json({ message: "User not found" });
-    }
-}));
-exports.updateCurrentUserProfile = updateCurrentUserProfile;
-const deleteUserById = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = req.params.id;
-    const currentUser = req.user;
-    if (currentUser === null || currentUser === void 0 ? void 0 : currentUser.isAdmin) {
-        const user = yield user_model_1.default.findById(userId);
-        if (user) {
-            if (user.isDeleted) {
-                res.status(404).json({ message: "User not found" });
-            }
-            else {
-                user.isDeleted = true; // Set the isDeleted flag to true
-                yield user.save(); // Save the updated user document
-                res.status(200).json({ message: "User deleted" });
-            }
-        }
-        else {
-            res.status(404).json({ message: "User not found" });
-        }
-    }
-    else {
-        res.status(401).json({ message: "Access denied. Only admins can delete users." });
-    }
-}));
-exports.deleteUserById = deleteUserById;
-const getUserById = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = req.params.id;
-    if (!userId || !mongoose_1.default.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-    }
-    const user = yield user_model_1.default
-        .findOne({ _id: userId, isDeleted: false })
-        .select("-password");
-    if (user) {
-        res.json(user);
-    }
-    else {
-        res.status(404).json({ message: "User not found" });
-    }
-}));
-exports.getUserById = getUserById;
-const updateUserById = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield user_model_1.default.findById(req.params.id);
-    if (user) {
-        user.username = req.body.username || user.username;
-        user.email = req.body.email || user.email;
-        // Check if isAdmin is provided in the request body and is a boolean
-        if (typeof req.body.isAdmin === "boolean") {
-            // Update roles array based on isAdmin value
-            if (req.body.isAdmin) {
-                // Add 'admin' to roles if not already present
-                if (!user.roles.includes("admin")) {
-                    user.roles.push("admin");
-                }
-            }
-            else {
-                // Remove 'admin' from roles if present
-                user.roles = user.roles.filter(role => role !== "admin");
-            }
-        }
-        const updatedUser = yield user.save();
-        res.status(200).json({
-            _id: updatedUser._id,
-            username: updatedUser.username,
-            email: updatedUser.email,
-            isAdmin: updatedUser.isAdmin,
-            roles: updatedUser.roles
-        });
-    }
-    else {
-        res.status(404).json({ message: "User not found" });
-    }
-}));
-exports.updateUserById = updateUserById;
-const assignRole = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
-    const { role } = req.body;
-    const userId = req.params.id; // Assuming req.params.id is the ID of the user you want to assign the role to
-    const isAdmin = (_d = req.user) === null || _d === void 0 ? void 0 : _d.isAdmin; // Assuming req.user.isAdmin is set by your authorization middleware
-    if (!isAdmin) {
-        return res.status(403).json({ message: "Access denied. Only admins can assign roles." });
-    }
-    const validRoles = ["user", "admin"];
-    if (!validRoles.includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
-    }
-    try {
-        const user = yield user_model_1.default.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        if (!user.roles.includes(role)) {
-            user.roles.push(role);
-            user.isAdmin = user.roles.includes("admin"); // Update isAdmin field
-            yield user.save();
-        }
-        return res.status(200).json({ message: "Role assigned successfully" });
-    }
-    catch (error) {
-        console.error("Error assigning role:", error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}));
-exports.assignRole = assignRole;
-const deleteRole = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
-    const { role } = req.body;
-    const userId = req.params.id; // Assuming req.params.id is the ID of the user you want to delete the role from
-    const isAdmin = (_e = req.user) === null || _e === void 0 ? void 0 : _e.isAdmin; // Assuming req.user.isAdmin is set by your authorization middleware
-    if (!isAdmin) {
-        return res.status(403).json({ message: "Access denied. Only admins can delete roles." });
-    }
-    const validRoles = ["user", "admin"];
-    if (!validRoles.includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
-    }
-    try {
-        const user = yield user_model_1.default.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        if (user.roles.includes(role)) {
-            user.roles = user.roles.filter((r) => r !== role);
-            user.isAdmin = user.roles.includes("admin"); // Update isAdmin field
-            yield user.save();
-        }
-        res.status(200).json({ message: "Role removed successfully" });
-    }
-    catch (error) {
-        console.error("Error removing role:", error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}));
-exports.deleteRole = deleteRole;
 const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email } = req.body;
     // Find the user by email
@@ -491,7 +309,7 @@ const handleGoogleAuth = (0, asyncHandler_1.default)((req, res, next) => __await
         const user = yield user_model_1.default.findOne({ email });
         if (user) {
             const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
-            const _f = user.toObject(), { password } = _f, rest = __rest(_f, ["password"]);
+            const _b = user.toObject(), { password } = _b, rest = __rest(_b, ["password"]);
             res
                 .status(200)
                 .cookie("access_token", token, {
@@ -515,7 +333,7 @@ const handleGoogleAuth = (0, asyncHandler_1.default)((req, res, next) => __await
                 id: newUser._id,
                 isAdmin: newUser.isAdmin,
             }, process.env.JWT_SECRET, { expiresIn: "1h" });
-            const _g = newUser.toObject(), { password } = _g, userData = __rest(_g, ["password"]);
+            const _c = newUser.toObject(), { password } = _c, userData = __rest(_c, ["password"]);
             res
                 .status(200)
                 .cookie("access_token", token, {
