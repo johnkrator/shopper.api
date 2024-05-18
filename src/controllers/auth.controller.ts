@@ -244,7 +244,7 @@ const forgotPassword = asyncHandler(async (req: ICustomRequest, res: Response) =
     // Check if the previous reset password token has expired
     if (user.resetPasswordExpires && new Date(user.resetPasswordExpires) < new Date()) {
         resetPasswordToken = crypto.randomBytes(20).toString("hex");
-        resetPasswordExpires = Date.now() + 60000; // 1 minute from now
+        resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
     } else {
         resetPasswordToken = user.resetPasswordToken || crypto.randomBytes(20).toString("hex");
         resetPasswordExpires = user.resetPasswordExpires || Date.now() + 60000;
@@ -320,7 +320,7 @@ const resendResetToken = asyncHandler(async (req: ICustomRequest, res: Response)
 
     // Generate a new reset password token
     const resetPasswordToken = crypto.randomBytes(20).toString("hex");
-    const resetPasswordExpires = Date.now() + 60000; // 1 hour from now
+    const resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
 
     // Hash the reset token
     // Set the new reset password token and expiration time

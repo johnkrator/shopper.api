@@ -10,7 +10,7 @@ const notFoundErrorHandler = (req: Request, res: Response, next: NextFunction) =
 
 // General Error Handler
 // This middleware will handle all the errors that occur in the app
-const generalErrorHandler = (error: Error, req: Request, res: Response, next: NextFunction) => {
+const generalErrorHandler = (error: Error, _req: Request, res: Response, next: NextFunction) => {
     // If the response headers have already been sent, delegate to the default Express error handler
     if (res.headersSent) {
         return next(error);
