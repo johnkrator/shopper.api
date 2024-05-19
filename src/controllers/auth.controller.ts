@@ -332,9 +332,7 @@ const resendResetToken = asyncHandler(async (req: ICustomRequest, res: Response)
     await user.save();
 
     // Send the new reset password email
-    const resetUrl = `${req.protocol}://${req.get(
-        "host"
-    )}/api/users/resetPassword/${resetPasswordToken}`;
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/users/resetPassword/${resetPasswordToken}`;
     await sendResetPasswordEmail(user.email, resetUrl);
 
     res.status(200).json({message: "New reset password email sent"});
