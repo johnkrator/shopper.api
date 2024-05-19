@@ -32,7 +32,7 @@ const getAllUsers = asyncHandler(async (req: ICustomRequest, res: Response) => {
 });
 
 const getCurrentUserProfile = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const user = await User.findById(req.user?._id);
+    const user = await User.findOne({_id: req.user?._id, isDeleted: false});
 
     if (user) {
         res.json({
