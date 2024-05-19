@@ -86,7 +86,7 @@ const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
 const loginUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const {email, password} = req.body;
 
-    const existingUser = await User.findOne({email});
+    const existingUser = await User.findOne({email, isDeleted: false});
 
     if (existingUser) {
         if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {

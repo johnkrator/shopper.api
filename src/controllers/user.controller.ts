@@ -2,7 +2,7 @@ import asyncHandler, {ICustomRequest} from "../helpers/middlewares/asyncHandler"
 import User from "../database/models/user.model";
 import bcrypt from "bcryptjs";
 import {generateToken} from "../helpers/middlewares/SessionToken";
-import mongoose from "mongoose";
+import mongoose, {isValidObjectId} from "mongoose";
 
 interface Response {
     status(code: number): Response;
@@ -32,7 +32,7 @@ const getAllUsers = asyncHandler(async (req: ICustomRequest, res: Response) => {
 });
 
 const getCurrentUserProfile = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const user = await User.findById(req.user?._id);
+    const user = await User.findOne({_id: req.user?._id, isDeleted: false});
 
     if (user) {
         res.json({
