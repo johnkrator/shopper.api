@@ -37,7 +37,7 @@ const getAllUsers = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
 exports.getAllUsers = getAllUsers;
 const getCurrentUserProfile = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const user = yield user_model_1.default.findById((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
+    const user = yield user_model_1.default.findOne({ _id: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id, isDeleted: false });
     if (user) {
         res.json({
             _id: user._id,

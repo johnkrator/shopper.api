@@ -82,7 +82,7 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
 exports.createUser = createUser;
 const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    const existingUser = yield user_model_1.default.findOne({ email });
+    const existingUser = yield user_model_1.default.findOne({ email, isDeleted: false });
     if (existingUser) {
         if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
             const timeUntilUnlock = Math.ceil((existingUser.lockUntil.getTime() - Date.now()) / 1000); // Calculate time until unlock in seconds
