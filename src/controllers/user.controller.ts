@@ -2,7 +2,7 @@ import asyncHandler, {ICustomRequest} from "../helpers/middlewares/asyncHandler"
 import User from "../database/models/user.model";
 import bcrypt from "bcryptjs";
 import {generateToken} from "../helpers/middlewares/SessionToken";
-import mongoose, {isValidObjectId} from "mongoose";
+import mongoose from "mongoose";
 
 interface Response {
     status(code: number): Response;
