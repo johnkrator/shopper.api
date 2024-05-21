@@ -9,7 +9,7 @@ https://documenter.getpostman.com/view/18462993/2sA3JM7226
 
 ## Deployed URL
 
-https://shopper-puce.vercel.app/api
+https://shopper-puce.vercel.app/v1/api
 
 ## Features
 
