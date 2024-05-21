@@ -16,6 +16,7 @@ const category_routes_1 = __importDefault(require("./routes/category.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
 const errorMiddleware_1 = require("./helpers/middlewares/errorMiddleware");
+const redis_1 = require("redis");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 (0, db_1.default)();
@@ -44,6 +45,13 @@ app.use("/public", express_1.default.static(node_path_1.default.join(node_path_1
 // Error middleware
 app.use(errorMiddleware_1.notFoundErrorHandler);
 app.use(errorMiddleware_1.generalErrorHandler);
+// Redis connection
+const redisClient = (0, redis_1.createClient)({
+    url: `redis://${process.env.REDIS_HOST}:6379`,
+});
+redisClient.on("error", (err) => {
+    console.error("Redis error:", err);
+});
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
