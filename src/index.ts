@@ -11,6 +11,7 @@ import CategoryRoutes from "./routes/category.routes";
 import OrderRoutes from "./routes/order.routes";
 import UploadRoutes from "./routes/upload.routes";
 import {generalErrorHandler, notFoundErrorHandler} from "./helpers/middlewares/errorMiddleware";
+import {createClient} from "redis";
 
 dotenv.config();
 
@@ -48,6 +49,15 @@ app.use("/public", express.static(path.join(path.resolve(), "/uploads")));
 // Error middleware
 app.use(notFoundErrorHandler);
 app.use(generalErrorHandler);
+
+// Redis connection
+const redisClient = createClient({
+    url: `redis://${process.env.REDIS_HOST}:6379`,
+});
+
+redisClient.on("error", (err) => {
+    console.error("Redis error:", err);
+});
 
 const port = process.env.PORT || 5000;
 
