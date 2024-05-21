@@ -11,6 +11,15 @@ https://documenter.getpostman.com/view/18462993/2sA3JM7226
 
 https://shopper-puce.vercel.app/v1/api
 
+## Technologies Used
+
+- **Node.js and Express**: For building the RESTful API.
+- **MongoDB**: As the database for storing application data.
+- **Docker**: For containerizing the application and ensuring consistent environments across development, testing, and
+  production.
+- **Redis**: For caching data to improve performance and reduce database load.
+- **Nginx**: As a reverse proxy to route requests to the application and for load balancing.
+
 ## Features
 
 - **Products**: CRUD operations for managing products, including adding, updating, deleting, and fetching products.
@@ -22,275 +31,91 @@ https://shopper-puce.vercel.app/v1/api
 
 ## API Endpoints
 
-## Category Routes
-
-### Create a Category
-
-- **POST** `/api/categories`
-    - Requires authentication and admin authorization
-    - Creates a new category
-
-### Get All Categories
-
-- **GET** `/api/categories`
-    - Retrieves all categories
-
-### Get a Category by ID
-
-- **GET** `/api/categories/:id`
-    - Retrieves a specific category by ID
-
-### Update a Category
-
-- **PUT** `/api/categories/:id`
-    - Requires authentication and admin authorization
-    - Updates a category by ID
-
-### Delete a Category
-
-- **DELETE** `/api/categories/:id`
-    - Requires authentication and admin authorization
-    - Deletes a category by ID
-
-## Order Routes
-
-### Create an Order
-
-- **POST** `/api/orders`
-    - Requires authentication
-    - Creates a new order
-
-### Get All Orders
-
-- **GET** `/api/orders`
-    - Requires authentication and admin authorization
-    - Retrieves all orders
-
-### Get User's Orders
-
-- **GET** `/api/orders/mine`
-    - Requires authentication
-    - Retrieves orders for the authenticated user
-
-### Get Total Number of Orders
-
-- **GET** `/api/orders/total-orders`
-    - Retrieves the total number of orders
-
-### Get Total Sales
-
-- **GET** `/api/orders/total-sales`
-    - Calculates the total sales amount
-
-### Get Total Sales by Date
-
-- **GET** `/api/orders/total-sales-by-date`
-    - Calculates total sales grouped by date
-
-### Get Order by ID
-
-- **GET** `/api/orders/:id`
-    - Requires authentication
-    - Retrieves a specific order by ID
-
-### Mark Order as Paid
-
-- **PUT** `/api/orders/:id/pay`
-    - Requires authentication
-    - Marks an order as paid
-
-### Mark Order as Delivered
-
-- **PUT** `/api/orders/:id/deliver`
-    - Requires authentication and admin authorization
-    - Marks an order as delivered
-
-## Product Routes
-
-### Add a Product
-
-- **POST** `/api/products`
-    - Requires authentication and admin authorization
-    - Adds a new product
-
-### Get All Products
-
-- **GET** `/api/products/all-products`
-    - Retrieves all products
-
-### Add Product Review
-
-- **POST** `/api/products/:id/reviews`
-    - Requires authentication
-    - Adds a review for a product
-
-### Filter Products
-
-- **POST** `/api/products/filtered-products`
-    - Filters products based on category and price range
-
-### Get Top Products
-
-- **GET** `/api/products/top`
-    - Retrieves top-rated products
-
-### Get New Products
-
-- **GET** `/api/products/new`
-    - Retrieves newly added products
-
-### Get Product by ID
-
-- **GET** `/api/products/:id`
-    - Retrieves a specific product by ID
-
-### Update a Product
-
-- **PUT** `/api/products/:id`
-    - Requires authentication and admin authorization
-    - Updates a product by ID
-
-### Delete a Product
-
-- **DELETE** `/api/products/:id`
-    - Requires authentication and admin authorization
-    - Deletes a product by ID
-
-## User Routes
-
-### Create a User
-
-- **POST** `/api/users`
-    - Creates a new user
-
-### Login User
-
-- **POST** `/api/users/login`
-    - Logs in a user
-
-### Change Password
-
-- **POST** `/api/users/change-password`
-    - Changes user's password
-
-### Verify Email
-
-- **POST** `/api/users/verify-email`
-    - Verifies user's email
-
-### Resend Verification Code
-
-- **POST** `/api/users/resendVerificationCode`
-    - Resends verification code
-
-### Resend Reset Token
-
-- **POST** `/api/users/resendResetToken`
-    - Resends reset token
-
-### Forgot Password
-
-- **POST** `/api/users/forgotPassword`
-    - Sends reset password email
-
-### Reset Password
-
-- **PUT** `/api/users/resetPassword`
-    - Resets user's password
-
-### Logout User
-
-- **POST** `/api/users/logout`
-    - Logs out the current user
-
-### OAuth Routes
-
-- **POST** `/api/users/google`
-    - Handles Google authentication
-- **POST** `/api/users/facebook`
-    - Handles Facebook authentication
-- **POST** `/api/users/github`
-    - Handles GitHub authentication
-- **POST** `/api/users/apple`
-    - Handles Apple authentication
-
-### Get All Users
-
-- **GET** `/api/users`
-    - Requires authentication and admin authorization
-    - Retrieves all users
-
-### Get Current User Profile
-
-- **GET** `/api/users/profile`
-    - Requires authentication
-    - Retrieves current user's profile
-
-### Update Current User Profile
-
-- **PUT** `/api/users/profile`
-    - Requires authentication
-    - Updates current user's profile
-
-### Delete User by ID
-
-- **DELETE** `/api/users/:id`
-    - Requires authentication and admin authorization
-    - Deletes a user by ID
-
-### Get User by ID
-
-- **GET** `/api/users/:id`
-    - Requires authentication and admin authorization
-    - Retrieves a user by ID
-
-### Update User by ID
-
-- **PUT** `/api/users/:id`
-    - Requires authentication and admin authorization
-    - Updates a user by ID
-
-### Assign Role to User
-
-- **PUT** `/api/users/assign-role/:id`
-    - Requires authentication and admin authorization
-    - Assigns a role to a user
-
-### Delete Role from User
-
-- **PUT** `/api/users/delete-role/:id`
-    - Requires authentication and admin authorization
-    - Deletes a role from a user
-
-## Upload Routes
-
-### Upload Image Locally
-
-- **POST** `/api/upload/local`
-    - Uploads an image locally
-
-### Upload Image to Cloudinary
-
-- **POST** `/api/upload/cloudinary`
-    - Uploads an image to Cloudinary
-
-## User Location Routes
-
-### Get Current Location
-
-- **POST** `/api/location`
-    - Retrieves and saves the current location of a user
-
----
-
-This API documentation provides a comprehensive guide to the available endpoints and their functionalities. Please refer
-to the specific routes for detailed usage instructions.
+All API endpoints are prefixed with the base URL `/v1/api`. For example, to create a category, you would send a POST
+request to `/v1/api/categories`.
+
+### Category Routes
+
+- **POST** `/v1/api/categories` - Create a new category (requires admin authorization)
+- **GET** `/v1/api/categories` - Retrieve all categories
+- **GET** `/v1/api/categories/:id` - Retrieve a specific category by ID
+- **PUT** `/v1/api/categories/:id` - Update a category by ID (requires admin authorization)
+- **DELETE** `/v1/api/categories/:id` - Delete a category by ID (requires admin authorization)
+
+### Order Routes
+
+- **POST** `/v1/api/orders` - Create a new order (requires authentication)
+- **GET** `/v1/api/orders` - Retrieve all orders (requires admin authorization)
+- **GET** `/v1/api/orders/mine` - Retrieve orders for the authenticated user
+- **GET** `/v1/api/orders/total-orders` - Retrieve the total number of orders
+- **GET** `/v1/api/orders/total-sales` - Calculate the total sales amount
+- **GET** `/v1/api/orders/total-sales-by-date` - Calculate total sales grouped by date
+- **GET** `/v1/api/orders/:id` - Retrieve a specific order by ID (requires authentication)
+- **PUT** `/v1/api/orders/:id/pay` - Mark an order as paid (requires authentication)
+- **PUT** `/v1/api/orders/:id/deliver` - Mark an order as delivered (requires admin authorization)
+
+### Product Routes
+
+- **POST** `/v1/api/products` - Add a new product (requires admin authorization)
+- **GET** `/v1/api/products/all-products` - Retrieve all products
+- **POST** `/v1/api/products/:id/reviews` - Add a review for a product (requires authentication)
+- **POST** `/v1/api/products/filtered-products` - Filter products based on category and price range
+- **GET** `/v1/api/products/top` - Retrieve top-rated products
+- **GET** `/v1/api/products/new` - Retrieve newly added products
+- **GET** `/v1/api/products/:id` - Retrieve a specific product by ID
+- **PUT** `/v1/api/products/:id` - Update a product by ID (requires admin authorization)
+- **DELETE** `/v1/api/products/:id` - Delete a product by ID (requires admin authorization)
+
+### User Routes
+
+- **POST** `/v1/api/users` - Create a new user
+- **POST** `/v1/api/auth/login` - Log in a user
+- **POST** `/v1/api/auth/change-password` - Change user's password
+- **POST** `/v1/api/auth/verify-email` - Verify user's email
+- **POST** `/v1/api/auth/resendVerificationCode` - Resend verification code
+- **POST** `/v1/api/auth/resendResetToken` - Resend reset token
+- **POST** `/v1/api/auth/forgotPassword` - Send reset password email
+- **PUT** `/v1/api/auth/resetPassword` - Reset user's password
+- **POST** `/v1/api/auth/logout` - Log out the current user
+- **GET** `/v1/api/users` - Retrieve all users (requires admin authorization)
+- **GET** `/v1/api/users/profile` - Retrieve current user's profile (requires authentication)
+- **PUT** `/v1/api/users/profile` - Update current user's profile (requires authentication)
+- **DELETE** `/v1/api/users/:id` - Delete a user by ID (requires admin authorization)
+- **GET** `/v1/api/users/:id` - Retrieve a user by ID (requires admin authorization)
+- **PUT** `/v1/api/users/:id` - Update a user by ID (requires admin authorization)
+- **PUT** `/v1/api/users/assign-role/:id` - Assign a role to a user (requires admin authorization)
+- **PUT** `/v1/api/users/delete-role/:id` - Delete a role from a user (requires admin authorization)
+
+### Upload Routes
+
+- **POST** `/v1/api/upload/local` - Upload an image locally
+- **POST** `/v1/api/upload/cloudinary` - Upload an image to Cloudinary
+
+### User Location Routes
+
+- **POST** `/v1/api/location` - Retrieve and save the current location of a user
+
+## Docker and Nginx Setup
+
+To run the application using Docker and Nginx, follow these steps:
+
+1. Ensure Docker and Docker Compose are installed on your system.
+2. Navigate to the root directory of the project.
+3. Build and start the containers using Docker Compose: `docker-compose up`
+
+This command will start the application, MongoDB, Redis, and Nginx services as defined in the `docker-compose.yml` file.
+Nginx will be configured to act as a reverse proxy, directing traffic to the application container.
+
+## Redis Caching
+
+Redis is used in this project to cache frequently accessed data. To connect to the Redis instance, ensure that the Redis
+service is running and that the correct connection string is provided in the environment variables.
 
 ## Setup
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Set up environment variables (e.g., MongoDB connection string, Cloudinary credentials)
+3. Set up environment variables (e.g., MongoDB connection string, Cloudinary credentials, `API_BASE_URL`)
 4. Start the server: `npm start`
 
 ## Contributors
