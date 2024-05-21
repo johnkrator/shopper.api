@@ -11,6 +11,7 @@ services:
       - NODE_ENV=development
       - JWT_SECRET=jsjiieisjjkskkiriiswuurhhsuyueujkskuahjaisiiejsjjsuueijsjksj
       - REDIS_HOST=redis
+      - API_BASE_URL=/v1/api
       - FROM_EMAIL=chukwuchidieberejohn@gmail.com
       - EMAIL_USERNAME=chukwuchidieberejohn@gmail.com
       - EMAIL_PASSWORD=qiiwarsjtrfhsvgc

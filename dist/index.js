@@ -17,27 +17,31 @@ const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
 const errorMiddleware_1 = require("./helpers/middlewares/errorMiddleware");
 const redis_1 = require("redis");
+const node_process_1 = __importDefault(require("node:process"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 (0, db_1.default)();
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
-app.get("/api", (_req, res) => {
+// Define the base URL for your API
+const apiBaseURL = node_process_1.default.env.API_BASE_URL;
+app.get(apiBaseURL, (_req, res) => {
     res.status(200).send("Welcome to the Shopper API");
 });
-app.use("/api/auth", auth_routes_1.default);
-app.use("/api/users", users_routes_1.default);
-app.use("/api/user", userLocation_routes_1.default);
-app.use("/api/products", product_routes_1.default);
-app.use("/api/category", category_routes_1.default);
-app.use("/api/order", order_routes_1.default);
-app.use("/api/upload", upload_routes_1.default);
-app.get("/api/config/paypal", (req, res) => {
+// Use the base URL for all your routes
+app.use(`${apiBaseURL}/auth`, auth_routes_1.default);
+app.use(`${apiBaseURL}/users`, users_routes_1.default);
+app.use(`${apiBaseURL}/user`, userLocation_routes_1.default);
+app.use(`${apiBaseURL}/products`, product_routes_1.default);
+app.use(`${apiBaseURL}/category`, category_routes_1.default);
+app.use(`${apiBaseURL}/order`, order_routes_1.default);
+app.use(`${apiBaseURL}/upload`, upload_routes_1.default);
+app.get(`${apiBaseURL}/config/paypal`, (_req, res) => {
     res.send({
-        clientId: process.env.PAYPAL_CLIENT_ID,
-        clientSecret: process.env.PAYPAL_CLIENT_SECRET,
-        sandbox: process.env.PAYPAL_SANDBOX
+        clientId: node_process_1.default.env.PAYPAL_CLIENT_ID,
+        clientSecret: node_process_1.default.env.PAYPAL_CLIENT_SECRET,
+        sandbox: node_process_1.default.env.PAYPAL_SANDBOX
     });
 });
 // Serving the static files from the public folder
@@ -47,12 +51,12 @@ app.use(errorMiddleware_1.notFoundErrorHandler);
 app.use(errorMiddleware_1.generalErrorHandler);
 // Redis connection
 const redisClient = (0, redis_1.createClient)({
-    url: `redis://${process.env.REDIS_HOST}:6379`,
+    url: `redis://${node_process_1.default.env.REDIS_HOST}:6379`,
 });
 redisClient.on("error", (err) => {
     console.error("Redis error:", err);
 });
-const port = process.env.PORT || 5000;
+const port = node_process_1.default.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });

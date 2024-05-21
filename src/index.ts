@@ -12,6 +12,7 @@ import OrderRoutes from "./routes/order.routes";
 import UploadRoutes from "./routes/upload.routes";
 import {generalErrorHandler, notFoundErrorHandler} from "./helpers/middlewares/errorMiddleware";
 import {createClient} from "redis";
+import process from "node:process";
 
 dotenv.config();
 
@@ -23,19 +24,23 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 
-app.get("/api", (_req: Request, res: Response) => {
+// Define the base URL for your API
+const apiBaseURL = process.env.API_BASE_URL;
+
+app.get(apiBaseURL, (_req: Request, res: Response) => {
     res.status(200).send("Welcome to the Shopper API");
 });
 
-app.use("/api/auth", AuthRoutes);
-app.use("/api/users", UserRoutes);
-app.use("/api/user", UserLocationRoutes);
-app.use("/api/products", ProductRoutes);
-app.use("/api/category", CategoryRoutes);
-app.use("/api/order", OrderRoutes);
-app.use("/api/upload", UploadRoutes);
+// Use the base URL for all your routes
+app.use(`${apiBaseURL}/auth`, AuthRoutes);
+app.use(`${apiBaseURL}/users`, UserRoutes);
+app.use(`${apiBaseURL}/user`, UserLocationRoutes);
+app.use(`${apiBaseURL}/products`, ProductRoutes);
+app.use(`${apiBaseURL}/category`, CategoryRoutes);
+app.use(`${apiBaseURL}/order`, OrderRoutes);
+app.use(`${apiBaseURL}/upload`, UploadRoutes);
 
-app.get("/api/config/paypal", (req, res) => {
+app.get(`${apiBaseURL}/config/paypal`, (_req, res) => {
     res.send({
         clientId: process.env.PAYPAL_CLIENT_ID,
         clientSecret: process.env.PAYPAL_CLIENT_SECRET,
