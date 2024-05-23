@@ -32,10 +32,10 @@ app.get(apiBaseURL, (_req, res) => {
 // Use the base URL for all your routes
 app.use(`${apiBaseURL}/auth`, auth_routes_1.default);
 app.use(`${apiBaseURL}/users`, users_routes_1.default);
-app.use(`${apiBaseURL}/user`, userLocation_routes_1.default);
+app.use(`${apiBaseURL}/location`, userLocation_routes_1.default);
 app.use(`${apiBaseURL}/products`, product_routes_1.default);
-app.use(`${apiBaseURL}/category`, category_routes_1.default);
-app.use(`${apiBaseURL}/order`, order_routes_1.default);
+app.use(`${apiBaseURL}/categories`, category_routes_1.default);
+app.use(`${apiBaseURL}/orders`, order_routes_1.default);
 app.use(`${apiBaseURL}/upload`, upload_routes_1.default);
 app.get(`${apiBaseURL}/config/paypal`, (_req, res) => {
     res.send({

@@ -34,10 +34,10 @@ app.get(apiBaseURL, (_req: Request, res: Response) => {
 // Use the base URL for all your routes
 app.use(`${apiBaseURL}/auth`, AuthRoutes);
 app.use(`${apiBaseURL}/users`, UserRoutes);
-app.use(`${apiBaseURL}/user`, UserLocationRoutes);
+app.use(`${apiBaseURL}/location`, UserLocationRoutes);
 app.use(`${apiBaseURL}/products`, ProductRoutes);
-app.use(`${apiBaseURL}/category`, CategoryRoutes);
-app.use(`${apiBaseURL}/order`, OrderRoutes);
+app.use(`${apiBaseURL}/categories`, CategoryRoutes);
+app.use(`${apiBaseURL}/orders`, OrderRoutes);
 app.use(`${apiBaseURL}/upload`, UploadRoutes);
 
 app.get(`${apiBaseURL}/config/paypal`, (_req, res) => {
