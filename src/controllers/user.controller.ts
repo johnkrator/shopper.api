@@ -3,6 +3,7 @@ import User from "../database/models/user.model";
 import bcrypt from "bcryptjs";
 import {generateToken} from "../helpers/middlewares/SessionToken";
 import mongoose from "mongoose";
+import {paginate} from "../helpers/utils/paginate";
 
 interface Response {
     status(code: number): Response;
@@ -15,20 +16,10 @@ interface Response {
 const getAllUsers = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const page: number = parseInt(req.query.page as string) || 1;
     const limit: number = parseInt(req.query.limit as string) || 10;
-    const startIndex: number = (page - 1) * limit;
 
-    const totalUsers: number = await User.countDocuments({isDeleted: false});
-    const users = await User.find({isDeleted: false})
-        .select("-password")
-        .skip(startIndex)
-        .limit(limit);
+    const result = await paginate(User, {isDeleted: false}, page, limit, null, "-password");
 
-    res.status(200).json({
-        users,
-        currentPage: page,
-        totalPages: Math.ceil(totalUsers / limit),
-        totalUsers,
-    });
+    res.status(200).json(result);
 });
 
 const getCurrentUserProfile = asyncHandler(async (req: ICustomRequest, res: Response) => {

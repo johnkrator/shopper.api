@@ -4,6 +4,7 @@ import Product, {IProduct} from "../database/models/product.model";
 import Order, {IOrder} from "../database/models/order.model";
 import mongoose from "mongoose";
 import calcPrices from "../helpers/utils/calcPrices";
+import {paginate} from "../helpers/utils/paginate";
 
 const createOrder = asyncHandler(async (req: ICustomRequest, res: Response) => {
     try {
@@ -65,26 +66,10 @@ const createOrder = asyncHandler(async (req: ICustomRequest, res: Response) => {
 const getOrders = asyncHandler(async (req: Request, res: Response) => {
     const page: number = parseInt(req.query.page as string) || 1;
     const limit: number = parseInt(req.query.limit as string) || 10;
-    const startIndex: number = (page - 1) * limit;
 
-    try {
-        const totalOrders: number = await Order.countDocuments({});
-        const orders: IOrder[] = await Order.find({})
-            .populate("user", "id username")
-            .skip(startIndex)
-            .limit(limit);
+    const result = await paginate(Order, {}, page, limit, null, "user");
 
-        const totalPages: number = Math.ceil(totalOrders / limit) || 1;
-
-        return res.status(200).json({
-            orders,
-            currentPage: page,
-            totalPages,
-            totalOrders,
-        });
-    } catch (error) {
-        return res.status(500).json({message: "An error occurred while retrieving orders"});
-    }
+    res.status(200).json(result);
 });
 
 /*
@@ -93,25 +78,10 @@ const getOrders = asyncHandler(async (req: Request, res: Response) => {
 const getUserOrders = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const page: number = parseInt(req.query.page as string) || 1;
     const limit: number = parseInt(req.query.limit as string) || 10;
-    const startIndex: number = (page - 1) * limit;
 
-    try {
-        const totalUserOrders: number = await Order.countDocuments({user: req.user?._id});
-        const orders: IOrder[] = await Order.find({user: req.user?._id})
-            .skip(startIndex)
-            .limit(limit);
+    const result = await paginate(Order, {user: req.user?._id}, page, limit);
 
-        const totalPages: number = Math.ceil(totalUserOrders / limit) || 1;
-
-        res.status(200).json({
-            orders,
-            currentPage: page,
-            totalPages,
-            totalUserOrders,
-        });
-    } catch (error) {
-        return res.status(500).json({message: "An error occurred while retrieving orders"});
-    }
+    res.status(200).json(result);
 });
 
 /*
@@ -181,7 +151,7 @@ const markOrderAsPaid = asyncHandler(async (req: Request, res: Response) => {
         }
 
         order.isPaid = true;
-        order.paidAt = new Date(); // Create a new Date object
+        order.paidAt = new Date();
         order.paymentResult = {
             id: req.body.id,
             status: req.body.status,
@@ -206,7 +176,7 @@ const markOrderAsDelivered = asyncHandler(async (req: Request, res: Response) =>
         }
 
         order.isDelivered = true;
-        order.deliveredAt = new Date(); // Create a new Date object
+        order.deliveredAt = new Date();
         order.deliveryResult = {
             id: req.body.id,
             status: req.body.status,

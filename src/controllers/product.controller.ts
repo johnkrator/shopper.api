@@ -1,22 +1,15 @@
 import {Request, Response} from "express";
 import Product from "../database/models/product.model";
 import Category from "../database/models/category.model";
-import asyncHandler, {IUser} from "../helpers/middlewares/asyncHandler";
+import asyncHandler from "../helpers/middlewares/asyncHandler";
 import {uploadImageToCloudinary} from "./upload.controller";
+import {paginate} from "../helpers/utils/paginate";
 
 interface AuthenticatedRequest extends Request {
     user?: {
         _id: string;
         username: string;
     };
-}
-
-export interface ICustomRequest extends Request {
-    query: {
-        page?: string;
-        limit?: string;
-    };
-    user?: IUser;
 }
 
 interface IReview {
@@ -127,33 +120,11 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
 const fetchProducts = asyncHandler(async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const startIndex = (page - 1) * limit;
+    const keyword = req.query.keyword as string;
 
-    // Filter products based on keyword
-    const keyword = req.query.keyword ? {
-        $or: [
-            {name: {$regex: req.query.keyword as string, $options: "i"}},
-            {brand: {$regex: req.query.keyword as string, $options: "i"}},
-            {description: {$regex: req.query.keyword as string, $options: "i"}},
-        ]
-    } : {};
+    const result = await paginate(Product, {}, page, limit, null, null, keyword);
 
-    const count = await Product.countDocuments({...keyword});
-    const totalProducts = await Product.countDocuments({});
-
-    const products = await Product.find({...keyword})
-        .skip(startIndex)
-        .limit(limit);
-
-    const totalPages = Math.ceil(totalProducts / limit) || 1;
-
-    res.status(200).json({
-        products,
-        currentPage: page,
-        totalPages,
-        totalProducts,
-        count,
-    });
+    res.status(200).json(result);
 });
 
 /*
@@ -163,26 +134,10 @@ const fetchProducts = asyncHandler(async (req: Request, res: Response) => {
 const fetchAllProducts = asyncHandler(async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const startIndex = (page - 1) * limit;
 
-    try {
-        const totalProducts = await Product.countDocuments({});
-        const products = await Product.find({})
-            .skip(startIndex)
-            .limit(limit);
+    const result = await paginate(Product, {}, page, limit);
 
-        const totalPages = Math.ceil(totalProducts / limit) || 1;
-
-        res.status(200).json({
-            products,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({error: "Server Error"});
-    }
+    res.status(200).json(result);
 });
 
 const getProductById = asyncHandler(async (req: Request, res: Response) => {
@@ -216,26 +171,10 @@ const removeProduct = asyncHandler(async (req: Request, res: Response) => {
 const fetchTopProducts = asyncHandler(async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 4;
-    const startIndex = (page - 1) * limit;
 
-    try {
-        const totalProducts = await Product.countDocuments({});
-        const products = await Product.find({})
-            .sort({rating: -1})
-            .skip(startIndex)
-            .limit(limit);
+    const result = await paginate(Product, {}, page, limit, {rating: -1});
 
-        const totalPages = Math.ceil(totalProducts / limit) || 1;
-
-        res.status(200).json({
-            products,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-        });
-    } catch (error) {
-        res.status(500).json("Server Error");
-    }
+    res.status(200).json(result);
 });
 
 /*
@@ -244,26 +183,10 @@ const fetchTopProducts = asyncHandler(async (req: Request, res: Response) => {
 const fetchNewProducts = asyncHandler(async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 5;
-    const startIndex = (page - 1) * limit;
 
-    try {
-        const totalProducts = await Product.countDocuments({});
-        const products = await Product.find({})
-            .sort({_id: -1})
-            .skip(startIndex)
-            .limit(limit);
+    const result = await paginate(Product, {}, page, limit, {_id: -1});
 
-        const totalPages = Math.ceil(totalProducts / limit) || 1;
-
-        res.status(200).json({
-            products,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-        });
-    } catch (error) {
-        res.status(500).json("Server Error");
-    }
+    res.status(200).json(result);
 });
 
 /*
@@ -320,7 +243,6 @@ const addProductReview = asyncHandler(async (req: AuthenticatedRequest, res: Res
         res.status(500).json({message: "Server Error"});
     }
 });
-
 
 export {
     addProduct,

@@ -29,10 +29,10 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const asyncHandler_1 = __importDefault(require("../helpers/middlewares/asyncHandler"));
 const user_model_1 = __importDefault(require("../database/models/user.model"));
 const crypto_1 = __importDefault(require("crypto"));
-const sendResetPasswordEmail_1 = __importDefault(require("../helpers/emailService/sendResetPasswordEmail"));
 const SessionToken_1 = require("../helpers/middlewares/SessionToken");
 const node_process_1 = __importDefault(require("node:process"));
 const generateOTP_1 = require("../helpers/middlewares/generateOTP");
+const sendResetPasswordOTPToUserEmailAndMobile_1 = require("../helpers/emailService/sendResetPasswordOTPToUserEmailAndMobile");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password, mobileNumber } = req.body;
     // Password validation regex
@@ -68,7 +68,7 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
             mobileNumber,
         });
         yield newUser.save();
-        (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
+        yield (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
         res.status(201).json({
             _id: newUser._id,
             username: newUser.username,
@@ -99,7 +99,7 @@ const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
             // Reset failed login attempts on successful login
             existingUser.failedLoginAttempts = 0;
             existingUser.lockUntil = null;
-            const { accessToken, refreshToken } = (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
             res.status(200).json({
                 _id: existingUser._id,
                 username: existingUser.username,
@@ -153,39 +153,6 @@ const verifyEmail = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
     }
 }));
 exports.verifyEmail = verifyEmail;
-// const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, res: Response) => {
-//     const {email, verificationCode} = req.body;
-//
-//     // Find the user with the provided email
-//     const user: IUser | null = await User.findOne({email});
-//
-//     if (!user) {
-//         return res.status(404).json({message: "User not found"});
-//     }
-//
-//     // Check if the verification code and its expiration date exist
-//     if (!user.verificationCode || !user.verificationCodeExpires) {
-//         return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
-//     }
-//
-//     // Check if the verification code has expired
-//     if (user.verificationCodeExpires.getTime() < Date.now()) {
-//         return res.status(400).json({message: "Verification code has expired"});
-//     }
-//
-//     // Check if the verification code matches
-//     if (user.verificationCode === verificationCode) {
-//         // Update the user's document to mark the email as verified
-//         user.isVerified = true;
-//         user.verificationCode = undefined; // Remove the verification code after successful verification
-//         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
-//         await user.save();
-//
-//         return res.status(200).json({message: "Email verified successfully"});
-//     } else {
-//         return res.status(400).json({message: "Invalid verification code"});
-//     }
-// });
 const changePassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { currentPassword, newPassword } = req.body;
@@ -234,7 +201,7 @@ const logoutCurrentUser = (0, asyncHandler_1.default)((_req, res) => __awaiter(v
 }));
 exports.logoutCurrentUser = logoutCurrentUser;
 const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email } = req.body;
+    const { email, mobileNumber } = req.body;
     // Find the user by email
     const user = yield user_model_1.default.findOne({ email });
     if (!user) {
@@ -242,13 +209,13 @@ const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
     }
     let resetPasswordToken, resetPasswordExpires;
     // Check if the previous reset password token has expired
-    if (user.resetPasswordExpires && new Date(user.resetPasswordExpires) < new Date()) {
+    if (!user.resetPasswordExpires || new Date(user.resetPasswordExpires) < new Date()) {
         resetPasswordToken = crypto_1.default.randomBytes(20).toString("hex");
         resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
     }
     else {
-        resetPasswordToken = user.resetPasswordToken || crypto_1.default.randomBytes(20).toString("hex");
-        resetPasswordExpires = user.resetPasswordExpires || Date.now() + 60000;
+        resetPasswordToken = user.resetPasswordToken;
+        resetPasswordExpires = user.resetPasswordExpires;
     }
     // Hash the reset password token
     // Set the reset password token and expiration time
@@ -258,10 +225,10 @@ const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
         .digest("hex");
     user.resetPasswordExpires = resetPasswordExpires;
     yield user.save();
-    // Send the reset password email
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/users/resetPassword/${resetPasswordToken}`;
-    yield (0, sendResetPasswordEmail_1.default)(user.email, resetUrl);
-    res.status(200).json({ message: "Reset password email sent" });
+    // Send the reset password email and SMS
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
+    yield (0, sendResetPasswordOTPToUserEmailAndMobile_1.sendResetPasswordOTPToUserEmailAndMobile)(user.email, mobileNumber, resetUrl);
+    res.status(200).json({ message: "Reset password instructions sent to your email and mobile number" });
 }));
 exports.forgotPassword = forgotPassword;
 const resetPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -297,7 +264,7 @@ const resetPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0
 }));
 exports.resetPassword = resetPassword;
 const resendResetToken = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email } = req.body;
+    const { email, mobileNumber } = req.body;
     // Find the user by email
     const user = yield user_model_1.default.findOne({ email });
     if (!user) {
@@ -314,10 +281,10 @@ const resendResetToken = (0, asyncHandler_1.default)((req, res) => __awaiter(voi
         .digest("hex");
     user.resetPasswordExpires = resetPasswordExpires;
     yield user.save();
-    // Send the new reset password email
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/users/resetPassword/${resetPasswordToken}`;
-    yield (0, sendResetPasswordEmail_1.default)(user.email, resetUrl);
-    res.status(200).json({ message: "New reset password email sent" });
+    // Send the new reset password email and SMS
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
+    yield (0, sendResetPasswordOTPToUserEmailAndMobile_1.sendResetPasswordOTPToUserEmailAndMobile)(user.email, mobileNumber, resetUrl);
+    res.status(200).json({ message: "New reset password instructions sent to your email and mobile number" });
 }));
 exports.resendResetToken = resendResetToken;
 const resendVerificationCode = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -388,7 +355,7 @@ exports.handleGoogleAuth = handleGoogleAuth;
 const handleFacebookAuth = (0, asyncHandler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, name, facebookPhotoUrl } = req.body;
     try {
-        const user = yield user_model_1.default.findOne({ email });
+        let user = yield user_model_1.default.findOne({ email }).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
             const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const { password } = user, rest = __rest(user, ["password"]);
@@ -414,7 +381,8 @@ const handleFacebookAuth = (0, asyncHandler_1.default)((req, res, next) => __awa
                 id: newUser._id,
                 isAdmin: newUser.isAdmin
             }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
-            const { password } = newUser, userData = __rest(newUser, ["password"]);
+            user = newUser.toObject(); // Convert the Mongoose document to a plain object
+            const { password } = user, userData = __rest(user, ["password"]);
             res
                 .status(200)
                 .cookie("access_token", token, {
@@ -431,7 +399,7 @@ exports.handleFacebookAuth = handleFacebookAuth;
 const handleGitHubAuth = (0, asyncHandler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, name, githubPhotoUrl } = req.body;
     try {
-        const user = yield user_model_1.default.findOne({ email });
+        let user = yield user_model_1.default.findOne({ email }).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
             const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const { password } = user, rest = __rest(user, ["password"]);
@@ -457,7 +425,8 @@ const handleGitHubAuth = (0, asyncHandler_1.default)((req, res, next) => __await
                 id: newUser._id,
                 isAdmin: newUser.isAdmin
             }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
-            const { password } = newUser, userData = __rest(newUser, ["password"]);
+            user = newUser.toObject(); // Convert the Mongoose document to a plain object
+            const { password } = user, userData = __rest(user, ["password"]);
             res
                 .status(200)
                 .cookie("access_token", token, {
@@ -474,7 +443,7 @@ exports.handleGitHubAuth = handleGitHubAuth;
 const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, name, applePhotoUrl } = req.body;
     try {
-        const user = yield user_model_1.default.findOne({ email });
+        let user = yield user_model_1.default.findOne({ email }).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
             const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const { password } = user, rest = __rest(user, ["password"]);
@@ -500,7 +469,8 @@ const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaite
                 id: newUser._id,
                 isAdmin: newUser.isAdmin
             }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
-            const { password } = newUser, userData = __rest(newUser, ["password"]);
+            user = newUser.toObject(); // Convert the Mongoose document to a plain object
+            const { password } = user, userData = __rest(user, ["password"]);
             res
                 .status(200)
                 .cookie("access_token", token, {
