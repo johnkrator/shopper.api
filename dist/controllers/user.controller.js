@@ -18,21 +18,12 @@ const user_model_1 = __importDefault(require("../database/models/user.model"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const SessionToken_1 = require("../helpers/middlewares/SessionToken");
 const mongoose_1 = __importDefault(require("mongoose"));
+const paginate_1 = require("../helpers/utils/paginate");
 const getAllUsers = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const startIndex = (page - 1) * limit;
-    const totalUsers = yield user_model_1.default.countDocuments({ isDeleted: false });
-    const users = yield user_model_1.default.find({ isDeleted: false })
-        .select("-password")
-        .skip(startIndex)
-        .limit(limit);
-    res.status(200).json({
-        users,
-        currentPage: page,
-        totalPages: Math.ceil(totalUsers / limit),
-        totalUsers,
-    });
+    const result = yield (0, paginate_1.paginate)(user_model_1.default, { isDeleted: false }, page, limit, null, "-password");
+    res.status(200).json(result);
 }));
 exports.getAllUsers = getAllUsers;
 const getCurrentUserProfile = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

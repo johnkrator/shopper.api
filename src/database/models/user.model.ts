@@ -22,6 +22,8 @@ export interface IUser extends Document {
     createdAt?: Date;
     updatedAt?: Date;
     mobileNumber: string;
+    lastActivity: Date;
+    refreshToken?: string;
 }
 
 const userSchema: Schema<IUser> = new mongoose.Schema({
@@ -47,6 +49,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     failedLoginAttempts: {type: Number, default: 0},
     lockUntil: {type: Date, default: null},
     mobileNumber: {type: String, unique: true},
+    refreshToken: {type: String}
 }, {timestamps: true});
 
 // Pre-save middleware to update isAdmin field based on roles
