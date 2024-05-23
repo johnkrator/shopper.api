@@ -18,7 +18,7 @@ import verifyToken from "../helpers/middlewares/verifyToken";
 
 const authRouter = express.Router();
 
-authRouter.post("/", createUser);
+authRouter.post("/register", createUser);
 
 authRouter.post("/login", loginUser);
 authRouter.post("/change-password", verifyToken, changePassword);

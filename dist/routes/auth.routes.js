@@ -7,7 +7,7 @@ const express_1 = __importDefault(require("express"));
 const auth_controller_1 = require("../controllers/auth.controller");
 const verifyToken_1 = __importDefault(require("../helpers/middlewares/verifyToken"));
 const authRouter = express_1.default.Router();
-authRouter.post("/", auth_controller_1.createUser);
+authRouter.post("/register", auth_controller_1.createUser);
 authRouter.post("/login", auth_controller_1.loginUser);
 authRouter.post("/change-password", verifyToken_1.default, auth_controller_1.changePassword);
 authRouter.post("/verify-email", auth_controller_1.verifyEmail);
