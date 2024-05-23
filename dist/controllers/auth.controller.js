@@ -33,6 +33,7 @@ const sendResetPasswordEmail_1 = __importDefault(require("../helpers/emailServic
 const SessionToken_1 = require("../helpers/middlewares/SessionToken");
 const node_process_1 = __importDefault(require("node:process"));
 const generateOTP_1 = require("../helpers/middlewares/generateOTP");
+const sendResetPasswordOTPToUserEmailAndMobile_1 = require("../helpers/emailService/sendResetPasswordOTPToUserEmailAndMobile");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password, mobileNumber } = req.body;
     // Password validation regex
@@ -153,39 +154,6 @@ const verifyEmail = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
     }
 }));
 exports.verifyEmail = verifyEmail;
-// const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, res: Response) => {
-//     const {email, verificationCode} = req.body;
-//
-//     // Find the user with the provided email
-//     const user: IUser | null = await User.findOne({email});
-//
-//     if (!user) {
-//         return res.status(404).json({message: "User not found"});
-//     }
-//
-//     // Check if the verification code and its expiration date exist
-//     if (!user.verificationCode || !user.verificationCodeExpires) {
-//         return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
-//     }
-//
-//     // Check if the verification code has expired
-//     if (user.verificationCodeExpires.getTime() < Date.now()) {
-//         return res.status(400).json({message: "Verification code has expired"});
-//     }
-//
-//     // Check if the verification code matches
-//     if (user.verificationCode === verificationCode) {
-//         // Update the user's document to mark the email as verified
-//         user.isVerified = true;
-//         user.verificationCode = undefined; // Remove the verification code after successful verification
-//         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
-//         await user.save();
-//
-//         return res.status(200).json({message: "Email verified successfully"});
-//     } else {
-//         return res.status(400).json({message: "Invalid verification code"});
-//     }
-// });
 const changePassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { currentPassword, newPassword } = req.body;
@@ -234,7 +202,7 @@ const logoutCurrentUser = (0, asyncHandler_1.default)((_req, res) => __awaiter(v
 }));
 exports.logoutCurrentUser = logoutCurrentUser;
 const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email } = req.body;
+    const { email, mobileNumber } = req.body;
     // Find the user by email
     const user = yield user_model_1.default.findOne({ email });
     if (!user) {
@@ -242,13 +210,13 @@ const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
     }
     let resetPasswordToken, resetPasswordExpires;
     // Check if the previous reset password token has expired
-    if (user.resetPasswordExpires && new Date(user.resetPasswordExpires) < new Date()) {
+    if (!user.resetPasswordExpires || new Date(user.resetPasswordExpires) < new Date()) {
         resetPasswordToken = crypto_1.default.randomBytes(20).toString("hex");
         resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
     }
     else {
-        resetPasswordToken = user.resetPasswordToken || crypto_1.default.randomBytes(20).toString("hex");
-        resetPasswordExpires = user.resetPasswordExpires || Date.now() + 60000;
+        resetPasswordToken = user.resetPasswordToken;
+        resetPasswordExpires = user.resetPasswordExpires;
     }
     // Hash the reset password token
     // Set the reset password token and expiration time
@@ -258,10 +226,10 @@ const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
         .digest("hex");
     user.resetPasswordExpires = resetPasswordExpires;
     yield user.save();
-    // Send the reset password email
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/users/resetPassword/${resetPasswordToken}`;
-    yield (0, sendResetPasswordEmail_1.default)(user.email, resetUrl);
-    res.status(200).json({ message: "Reset password email sent" });
+    // Send the reset password email and SMS
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
+    yield (0, sendResetPasswordOTPToUserEmailAndMobile_1.sendResetPasswordOTPToUserEmailAndMobile)(user.email, mobileNumber, resetUrl);
+    res.status(200).json({ message: "Reset password instructions sent to your email and mobile number" });
 }));
 exports.forgotPassword = forgotPassword;
 const resetPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

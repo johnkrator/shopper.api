@@ -8,6 +8,9 @@ import {generateToken} from "../helpers/middlewares/SessionToken";
 import {Request} from "express";
 import process from "node:process";
 import {generateOTP} from "../helpers/middlewares/generateOTP";
+import {
+    sendResetPasswordOTPToUserEmailAndMobile
+} from "../helpers/emailService/sendResetPasswordOTPToUserEmailAndMobile";
 
 interface Response {
     status(code: number): Response;
@@ -169,41 +172,6 @@ const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, r
     }
 });
 
-
-// const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, res: Response) => {
-//     const {email, verificationCode} = req.body;
-//
-//     // Find the user with the provided email
-//     const user: IUser | null = await User.findOne({email});
-//
-//     if (!user) {
-//         return res.status(404).json({message: "User not found"});
-//     }
-//
-//     // Check if the verification code and its expiration date exist
-//     if (!user.verificationCode || !user.verificationCodeExpires) {
-//         return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
-//     }
-//
-//     // Check if the verification code has expired
-//     if (user.verificationCodeExpires.getTime() < Date.now()) {
-//         return res.status(400).json({message: "Verification code has expired"});
-//     }
-//
-//     // Check if the verification code matches
-//     if (user.verificationCode === verificationCode) {
-//         // Update the user's document to mark the email as verified
-//         user.isVerified = true;
-//         user.verificationCode = undefined; // Remove the verification code after successful verification
-//         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
-//         await user.save();
-//
-//         return res.status(200).json({message: "Email verified successfully"});
-//     } else {
-//         return res.status(400).json({message: "Invalid verification code"});
-//     }
-// });
-
 const changePassword = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const {currentPassword, newPassword} = req.body;
     const userId = req.user?.userId;
@@ -267,7 +235,7 @@ const logoutCurrentUser = asyncHandler(async (_req: ICustomRequest, res: Respons
 });
 
 const forgotPassword = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {email} = req.body;
+    const {email, mobileNumber} = req.body;
 
     // Find the user by email
     const user = await User.findOne({email});
@@ -279,12 +247,12 @@ const forgotPassword = asyncHandler(async (req: ICustomRequest, res: Response) =
     let resetPasswordToken, resetPasswordExpires;
 
     // Check if the previous reset password token has expired
-    if (user.resetPasswordExpires && new Date(user.resetPasswordExpires) < new Date()) {
+    if (!user.resetPasswordExpires || new Date(user.resetPasswordExpires) < new Date()) {
         resetPasswordToken = crypto.randomBytes(20).toString("hex");
         resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
     } else {
-        resetPasswordToken = user.resetPasswordToken || crypto.randomBytes(20).toString("hex");
-        resetPasswordExpires = user.resetPasswordExpires || Date.now() + 60000;
+        resetPasswordToken = user.resetPasswordToken;
+        resetPasswordExpires = user.resetPasswordExpires;
     }
 
     // Hash the reset password token
@@ -297,11 +265,11 @@ const forgotPassword = asyncHandler(async (req: ICustomRequest, res: Response) =
 
     await user.save();
 
-    // Send the reset password email
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/users/resetPassword/${resetPasswordToken}`;
-    await sendResetPasswordEmail(user.email, resetUrl);
+    // Send the reset password email and SMS
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
+    await sendResetPasswordOTPToUserEmailAndMobile(user.email, mobileNumber, resetUrl);
 
-    res.status(200).json({message: "Reset password email sent"});
+    res.status(200).json({message: "Reset password instructions sent to your email and mobile number"});
 });
 
 const resetPassword = asyncHandler(async (req: ICustomRequest, res: Response) => {
