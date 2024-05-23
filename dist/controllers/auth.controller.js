@@ -68,7 +68,7 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
             mobileNumber,
         });
         yield newUser.save();
-        (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
+        yield (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
         res.status(201).json({
             _id: newUser._id,
             username: newUser.username,
@@ -99,7 +99,7 @@ const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
             // Reset failed login attempts on successful login
             existingUser.failedLoginAttempts = 0;
             existingUser.lockUntil = null;
-            const { accessToken, refreshToken } = (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
             res.status(200).json({
                 _id: existingUser._id,
                 username: existingUser.username,

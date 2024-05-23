@@ -73,7 +73,7 @@ const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
 
         await newUser.save();
 
-        generateToken(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
+        await generateToken(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
         res.status(201).json({
             _id: newUser._id,
             username: newUser.username,
@@ -112,7 +112,7 @@ const loginUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
             const {
                 accessToken,
                 refreshToken
-            } = generateToken(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+            } = await generateToken(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
 
             res.status(200).json({
                 _id: existingUser._id,

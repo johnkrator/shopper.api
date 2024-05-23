@@ -27,6 +27,7 @@ const userSchema = new mongoose_1.default.Schema({
     failedLoginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date, default: null },
     mobileNumber: { type: String, unique: true },
+    refreshToken: { type: String }
 }, { timestamps: true });
 // Pre-save middleware to update isAdmin field based on roles
 userSchema.pre("save", function (next) {
