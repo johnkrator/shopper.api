@@ -68,7 +68,7 @@ request to `/v1/api/categories`.
 
 ### User Routes
 
-- **POST** `/v1/api/users` - Create a new user
+- **POST** `/v1/api/auth/register` - Create a new user
 - **POST** `/v1/api/auth/login` - Log in a user
 - **POST** `/v1/api/auth/change-password` - Change user's password
 - **POST** `/v1/api/auth/verify-email` - Verify user's email

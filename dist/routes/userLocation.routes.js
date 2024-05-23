@@ -6,6 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const userLocation_controller_1 = require("../controllers/userLocation.controller");
 const userLocationRouter = express_1.default.Router();
-userLocationRouter.post("/location", userLocation_controller_1.getCurrentLocation);
+userLocationRouter.post("/", userLocation_controller_1.getCurrentLocation);
 exports.default = userLocationRouter;
 //# sourceMappingURL=userLocation.routes.js.map

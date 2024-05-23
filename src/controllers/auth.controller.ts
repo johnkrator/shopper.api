@@ -2,11 +2,12 @@ import bcrypt from "bcryptjs";
 import jwt, {Secret} from "jsonwebtoken";
 import asyncHandler, {ICustomRequest} from "../helpers/middlewares/asyncHandler";
 import User, {IUser} from "../database/models/user.model";
-import sendRegistrationVerificationEmail from "../helpers/emailService/sendRegistrationVerificationEmail";
 import crypto from "crypto";
 import sendResetPasswordEmail from "../helpers/emailService/sendResetPasswordEmail";
 import {generateToken} from "../helpers/middlewares/SessionToken";
 import {Request} from "express";
+import process from "node:process";
+import {generateOTP} from "../helpers/middlewares/generateOTP";
 
 interface Response {
     status(code: number): Response;
@@ -26,19 +27,18 @@ interface VerifyEmailBody {
 }
 
 const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {username, email, password} = req.body;
+    const {username, email, password, mobileNumber} = req.body;
 
     // Password validation regex
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !mobileNumber) {
         return res.status(400).json({message: "Please provide all the required fields"});
     }
 
     if (!passwordRegex.test(password)) {
         return res.status(400).json({
-            message:
-                "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+            message: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
         });
     }
 
@@ -47,26 +47,28 @@ const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
         return res.status(400).json({message: "User already exists"});
     }
 
+    const phoneNumberExists = await User.findOne({mobileNumber});
+    if (phoneNumberExists) {
+        return res.status(400).json({message: "Mobile number already exists"});
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Generate a verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    const verificationCodeExpires = new Date(Date.now() + 60 * 1000); // 1 minute from now
-
-    // Send the verification email
-    await sendRegistrationVerificationEmail(email, verificationCode);
-
-    const newUser = new User({
-        username,
-        email,
-        password: hashedPassword,
-        verificationCode,
-        isVerified: false,
-        verificationCodeExpires,
-    });
-
     try {
+        // Generate and send the verification OTP
+        const {verificationCode, verificationCodeExpires} = await generateOTP(email, mobileNumber);
+
+        const newUser = new User({
+            username,
+            email,
+            password: hashedPassword,
+            verificationCode,
+            verificationCodeExpires,
+            isVerified: false,
+            mobileNumber,
+        });
+
         await newUser.save();
 
         generateToken(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
@@ -75,11 +77,11 @@ const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
             username: newUser.username,
             email: newUser.email,
             isAdmin: newUser.isAdmin,
-            message: "Verification code sent to your email",
+            message: "Verification OTP sent to your email and mobile number",
         });
     } catch (error) {
-        res.status(400);
-        throw new Error("Invalid user data");
+        console.error("Failed to save user or send OTP:", error);
+        res.status(400).json({message: "Invalid user data or failed to send OTP"});
     }
 });
 
@@ -143,21 +145,21 @@ const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, r
         return res.status(404).json({message: "User not found"});
     }
 
-    // Check if the verification code and its expiration date exist
+    // Check if the verification OTP and its expiration date exist
     if (!user.verificationCode || !user.verificationCodeExpires) {
         return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
     }
 
-    // Check if the verification code has expired
+    // Check if the verification OTP has expired
     if (user.verificationCodeExpires.getTime() < Date.now()) {
         return res.status(400).json({message: "Verification code has expired"});
     }
 
-    // Check if the verification code matches
+    // Check if the verification OTP matches
     if (user.verificationCode === verificationCode) {
         // Update the user's document to mark the email as verified
         user.isVerified = true;
-        user.verificationCode = undefined; // Remove the verification code after successful verification
+        user.verificationCode = undefined; // Remove the verification OTP after successful verification
         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
         await user.save();
 
@@ -166,6 +168,41 @@ const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, r
         return res.status(400).json({message: "Invalid verification code"});
     }
 });
+
+
+// const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, res: Response) => {
+//     const {email, verificationCode} = req.body;
+//
+//     // Find the user with the provided email
+//     const user: IUser | null = await User.findOne({email});
+//
+//     if (!user) {
+//         return res.status(404).json({message: "User not found"});
+//     }
+//
+//     // Check if the verification code and its expiration date exist
+//     if (!user.verificationCode || !user.verificationCodeExpires) {
+//         return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
+//     }
+//
+//     // Check if the verification code has expired
+//     if (user.verificationCodeExpires.getTime() < Date.now()) {
+//         return res.status(400).json({message: "Verification code has expired"});
+//     }
+//
+//     // Check if the verification code matches
+//     if (user.verificationCode === verificationCode) {
+//         // Update the user's document to mark the email as verified
+//         user.isVerified = true;
+//         user.verificationCode = undefined; // Remove the verification code after successful verification
+//         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
+//         await user.save();
+//
+//         return res.status(200).json({message: "Email verified successfully"});
+//     } else {
+//         return res.status(400).json({message: "Invalid verification code"});
+//     }
+// });
 
 const changePassword = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const {currentPassword, newPassword} = req.body;
@@ -338,30 +375,29 @@ const resendResetToken = asyncHandler(async (req: ICustomRequest, res: Response)
     res.status(200).json({message: "New reset password email sent"});
 });
 
-const resendVerificationCode = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {email} = req.body;
+const resendVerificationCode = async (req: Request, res: Response) => {
+    try {
+        const {email, mobileNumber} = req.body;
+        const user = await User.findOne({email});
 
-    // Find the user by email
-    const user = await User.findOne({email});
+        if (!user) {
+            return res.status(404).json({message: "User not found"});
+        }
 
-    if (!user) {
-        return res.status(404).json({message: "User not found"});
+        // Generate a new OTP and expiration date
+        const {verificationCode, verificationCodeExpires} = await generateOTP(email, mobileNumber);
+
+        // Update the user's document with the new verification code and expiration time
+        user.verificationCode = verificationCode;
+        user.verificationCodeExpires = verificationCodeExpires;
+        await user.save();
+
+        return res.json({message: "New verification code sent to your email and mobile number"});
+    } catch (error) {
+        console.error("Failed to resend verification code:", error);
+        return res.status(500).json({message: "Failed to resend verification code"});
     }
-
-    // Generate a new verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    const verificationCodeExpires = new Date(Date.now() + 60 * 1000); // 1 minute from now
-
-    // Update the user's document with the new verification code and expiration time
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = verificationCodeExpires;
-    await user.save();
-
-    // Send the new verification email
-    await sendRegistrationVerificationEmail(email, verificationCode);
-
-    res.status(200).json({message: "New verification code sent to your email"});
-});
+};
 
 const handleGoogleAuth = asyncHandler(async (req: ICustomRequest, res: Response, next: NextFunction) => {
     const {email, name, googlePhotoUrl} = req.body;

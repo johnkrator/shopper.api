@@ -3,6 +3,6 @@ import {getCurrentLocation} from "../controllers/userLocation.controller";
 
 const userLocationRouter = express.Router();
 
-userLocationRouter.post("/location", getCurrentLocation);
+userLocationRouter.post("/", getCurrentLocation);
 
 export default userLocationRouter;

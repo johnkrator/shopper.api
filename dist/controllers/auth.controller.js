@@ -28,15 +28,16 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const asyncHandler_1 = __importDefault(require("../helpers/middlewares/asyncHandler"));
 const user_model_1 = __importDefault(require("../database/models/user.model"));
-const sendRegistrationVerificationEmail_1 = __importDefault(require("../helpers/emailService/sendRegistrationVerificationEmail"));
 const crypto_1 = __importDefault(require("crypto"));
 const sendResetPasswordEmail_1 = __importDefault(require("../helpers/emailService/sendResetPasswordEmail"));
 const SessionToken_1 = require("../helpers/middlewares/SessionToken");
+const node_process_1 = __importDefault(require("node:process"));
+const generateOTP_1 = require("../helpers/middlewares/generateOTP");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, email, password } = req.body;
+    const { username, email, password, mobileNumber } = req.body;
     // Password validation regex
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !mobileNumber) {
         return res.status(400).json({ message: "Please provide all the required fields" });
     }
     if (!passwordRegex.test(password)) {
@@ -48,22 +49,24 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
     if (userExists) {
         return res.status(400).json({ message: "User already exists" });
     }
+    const phoneNumberExists = yield user_model_1.default.findOne({ mobileNumber });
+    if (phoneNumberExists) {
+        return res.status(400).json({ message: "Mobile number already exists" });
+    }
     const salt = yield bcryptjs_1.default.genSalt(10);
     const hashedPassword = yield bcryptjs_1.default.hash(password, salt);
-    // Generate a verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    const verificationCodeExpires = new Date(Date.now() + 60 * 1000); // 1 minute from now
-    // Send the verification email
-    yield (0, sendRegistrationVerificationEmail_1.default)(email, verificationCode);
-    const newUser = new user_model_1.default({
-        username,
-        email,
-        password: hashedPassword,
-        verificationCode,
-        isVerified: false,
-        verificationCodeExpires,
-    });
     try {
+        // Generate and send the verification OTP
+        const { verificationCode, verificationCodeExpires } = yield (0, generateOTP_1.generateOTP)(email, mobileNumber);
+        const newUser = new user_model_1.default({
+            username,
+            email,
+            password: hashedPassword,
+            verificationCode,
+            verificationCodeExpires,
+            isVerified: false,
+            mobileNumber,
+        });
         yield newUser.save();
         (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
         res.status(201).json({
@@ -71,12 +74,12 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
             username: newUser.username,
             email: newUser.email,
             isAdmin: newUser.isAdmin,
-            message: "Verification code sent to your email",
+            message: "Verification OTP sent to your email and mobile number",
         });
     }
     catch (error) {
-        res.status(400);
-        throw new Error("Invalid user data");
+        console.error("Failed to save user or send OTP:", error);
+        res.status(400).json({ message: "Invalid user data or failed to send OTP" });
     }
 }));
 exports.createUser = createUser;
@@ -128,19 +131,19 @@ const verifyEmail = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
     if (!user) {
         return res.status(404).json({ message: "User not found" });
     }
-    // Check if the verification code and its expiration date exist
+    // Check if the verification OTP and its expiration date exist
     if (!user.verificationCode || !user.verificationCodeExpires) {
         return res.status(400).json({ message: "Verification code not found or has expired. Please request a new one" });
     }
-    // Check if the verification code has expired
+    // Check if the verification OTP has expired
     if (user.verificationCodeExpires.getTime() < Date.now()) {
         return res.status(400).json({ message: "Verification code has expired" });
     }
-    // Check if the verification code matches
+    // Check if the verification OTP matches
     if (user.verificationCode === verificationCode) {
         // Update the user's document to mark the email as verified
         user.isVerified = true;
-        user.verificationCode = undefined; // Remove the verification code after successful verification
+        user.verificationCode = undefined; // Remove the verification OTP after successful verification
         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
         yield user.save();
         return res.status(200).json({ message: "Email verified successfully" });
@@ -150,6 +153,39 @@ const verifyEmail = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, 
     }
 }));
 exports.verifyEmail = verifyEmail;
+// const verifyEmail = asyncHandler(async (req: Request<{}, {}, VerifyEmailBody>, res: Response) => {
+//     const {email, verificationCode} = req.body;
+//
+//     // Find the user with the provided email
+//     const user: IUser | null = await User.findOne({email});
+//
+//     if (!user) {
+//         return res.status(404).json({message: "User not found"});
+//     }
+//
+//     // Check if the verification code and its expiration date exist
+//     if (!user.verificationCode || !user.verificationCodeExpires) {
+//         return res.status(400).json({message: "Verification code not found or has expired. Please request a new one"});
+//     }
+//
+//     // Check if the verification code has expired
+//     if (user.verificationCodeExpires.getTime() < Date.now()) {
+//         return res.status(400).json({message: "Verification code has expired"});
+//     }
+//
+//     // Check if the verification code matches
+//     if (user.verificationCode === verificationCode) {
+//         // Update the user's document to mark the email as verified
+//         user.isVerified = true;
+//         user.verificationCode = undefined; // Remove the verification code after successful verification
+//         user.verificationCodeExpires = undefined; // Remove the verification code expiration date
+//         await user.save();
+//
+//         return res.status(200).json({message: "Email verified successfully"});
+//     } else {
+//         return res.status(400).json({message: "Invalid verification code"});
+//     }
+// });
 const changePassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const { currentPassword, newPassword } = req.body;
@@ -284,31 +320,33 @@ const resendResetToken = (0, asyncHandler_1.default)((req, res) => __awaiter(voi
     res.status(200).json({ message: "New reset password email sent" });
 }));
 exports.resendResetToken = resendResetToken;
-const resendVerificationCode = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email } = req.body;
-    // Find the user by email
-    const user = yield user_model_1.default.findOne({ email });
-    if (!user) {
-        return res.status(404).json({ message: "User not found" });
+const resendVerificationCode = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, mobileNumber } = req.body;
+        const user = yield user_model_1.default.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        // Generate a new OTP and expiration date
+        const { verificationCode, verificationCodeExpires } = yield (0, generateOTP_1.generateOTP)(email, mobileNumber);
+        // Update the user's document with the new verification code and expiration time
+        user.verificationCode = verificationCode;
+        user.verificationCodeExpires = verificationCodeExpires;
+        yield user.save();
+        return res.json({ message: "New verification code sent to your email and mobile number" });
     }
-    // Generate a new verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    const verificationCodeExpires = new Date(Date.now() + 60 * 1000); // 1 minute from now
-    // Update the user's document with the new verification code and expiration time
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = verificationCodeExpires;
-    yield user.save();
-    // Send the new verification email
-    yield (0, sendRegistrationVerificationEmail_1.default)(email, verificationCode);
-    res.status(200).json({ message: "New verification code sent to your email" });
-}));
+    catch (error) {
+        console.error("Failed to resend verification code:", error);
+        return res.status(500).json({ message: "Failed to resend verification code" });
+    }
+});
 exports.resendVerificationCode = resendVerificationCode;
 const handleGoogleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, name, googlePhotoUrl } = req.body;
     try {
         const user = yield user_model_1.default.findOne({ email });
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
+            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const _b = user.toObject(), { password } = _b, rest = __rest(_b, ["password"]);
             res
                 .status(200)
@@ -332,7 +370,7 @@ const handleGoogleAuth = (0, asyncHandler_1.default)((req, res, next) => __await
             const token = jsonwebtoken_1.default.sign({
                 id: newUser._id,
                 isAdmin: newUser.isAdmin,
-            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
             const _c = newUser.toObject(), { password } = _c, userData = __rest(_c, ["password"]);
             res
                 .status(200)
@@ -352,7 +390,7 @@ const handleFacebookAuth = (0, asyncHandler_1.default)((req, res, next) => __awa
     try {
         const user = yield user_model_1.default.findOne({ email });
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
+            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const { password } = user, rest = __rest(user, ["password"]);
             res
                 .status(200)
@@ -375,7 +413,7 @@ const handleFacebookAuth = (0, asyncHandler_1.default)((req, res, next) => __awa
             const token = jsonwebtoken_1.default.sign({
                 id: newUser._id,
                 isAdmin: newUser.isAdmin
-            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
             const { password } = newUser, userData = __rest(newUser, ["password"]);
             res
                 .status(200)
@@ -395,7 +433,7 @@ const handleGitHubAuth = (0, asyncHandler_1.default)((req, res, next) => __await
     try {
         const user = yield user_model_1.default.findOne({ email });
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
+            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const { password } = user, rest = __rest(user, ["password"]);
             res
                 .status(200)
@@ -418,7 +456,7 @@ const handleGitHubAuth = (0, asyncHandler_1.default)((req, res, next) => __await
             const token = jsonwebtoken_1.default.sign({
                 id: newUser._id,
                 isAdmin: newUser.isAdmin
-            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
             const { password } = newUser, userData = __rest(newUser, ["password"]);
             res
                 .status(200)
@@ -438,7 +476,7 @@ const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaite
     try {
         const user = yield user_model_1.default.findOne({ email });
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
+            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
             const { password } = user, rest = __rest(user, ["password"]);
             res
                 .status(200)
@@ -461,7 +499,7 @@ const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaite
             const token = jsonwebtoken_1.default.sign({
                 id: newUser._id,
                 isAdmin: newUser.isAdmin
-            }, process.env.JWT_SECRET, { expiresIn: "1h" });
+            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
             const { password } = newUser, userData = __rest(newUser, ["password"]);
             res
                 .status(200)
