@@ -17,6 +17,7 @@ const product_model_1 = __importDefault(require("../database/models/product.mode
 const category_model_1 = __importDefault(require("../database/models/category.model"));
 const asyncHandler_1 = __importDefault(require("../helpers/middlewares/asyncHandler"));
 const upload_controller_1 = require("./upload.controller");
+const paginate_1 = require("../helpers/utils/paginate");
 const addProduct = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, image, brand, quantity, category, description, price } = req.body;
@@ -121,28 +122,9 @@ exports.updateProduct = updateProduct;
 const fetchProducts = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const startIndex = (page - 1) * limit;
-    // Filter products based on keyword
-    const keyword = req.query.keyword ? {
-        $or: [
-            { name: { $regex: req.query.keyword, $options: "i" } },
-            { brand: { $regex: req.query.keyword, $options: "i" } },
-            { description: { $regex: req.query.keyword, $options: "i" } },
-        ]
-    } : {};
-    const count = yield product_model_1.default.countDocuments(Object.assign({}, keyword));
-    const totalProducts = yield product_model_1.default.countDocuments({});
-    const products = yield product_model_1.default.find(Object.assign({}, keyword))
-        .skip(startIndex)
-        .limit(limit);
-    const totalPages = Math.ceil(totalProducts / limit) || 1;
-    res.status(200).json({
-        products,
-        currentPage: page,
-        totalPages,
-        totalProducts,
-        count,
-    });
+    const keyword = req.query.keyword;
+    const result = yield (0, paginate_1.paginate)(product_model_1.default, {}, page, limit, null, null, keyword);
+    res.status(200).json(result);
 }));
 exports.fetchProducts = fetchProducts;
 /*
@@ -152,24 +134,8 @@ exports.fetchProducts = fetchProducts;
 const fetchAllProducts = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const startIndex = (page - 1) * limit;
-    try {
-        const totalProducts = yield product_model_1.default.countDocuments({});
-        const products = yield product_model_1.default.find({})
-            .skip(startIndex)
-            .limit(limit);
-        const totalPages = Math.ceil(totalProducts / limit) || 1;
-        res.status(200).json({
-            products,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-        });
-    }
-    catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Server Error" });
-    }
+    const result = yield (0, paginate_1.paginate)(product_model_1.default, {}, page, limit);
+    res.status(200).json(result);
 }));
 exports.fetchAllProducts = fetchAllProducts;
 const getProductById = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -199,24 +165,8 @@ exports.removeProduct = removeProduct;
 const fetchTopProducts = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 4;
-    const startIndex = (page - 1) * limit;
-    try {
-        const totalProducts = yield product_model_1.default.countDocuments({});
-        const products = yield product_model_1.default.find({})
-            .sort({ rating: -1 })
-            .skip(startIndex)
-            .limit(limit);
-        const totalPages = Math.ceil(totalProducts / limit) || 1;
-        res.status(200).json({
-            products,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-        });
-    }
-    catch (error) {
-        res.status(500).json("Server Error");
-    }
+    const result = yield (0, paginate_1.paginate)(product_model_1.default, {}, page, limit, { rating: -1 });
+    res.status(200).json(result);
 }));
 exports.fetchTopProducts = fetchTopProducts;
 /*
@@ -225,24 +175,8 @@ exports.fetchTopProducts = fetchTopProducts;
 const fetchNewProducts = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
-    const startIndex = (page - 1) * limit;
-    try {
-        const totalProducts = yield product_model_1.default.countDocuments({});
-        const products = yield product_model_1.default.find({})
-            .sort({ _id: -1 })
-            .skip(startIndex)
-            .limit(limit);
-        const totalPages = Math.ceil(totalProducts / limit) || 1;
-        res.status(200).json({
-            products,
-            currentPage: page,
-            totalPages,
-            totalProducts,
-        });
-    }
-    catch (error) {
-        res.status(500).json("Server Error");
-    }
+    const result = yield (0, paginate_1.paginate)(product_model_1.default, {}, page, limit, { _id: -1 });
+    res.status(200).json(result);
 }));
 exports.fetchNewProducts = fetchNewProducts;
 /*

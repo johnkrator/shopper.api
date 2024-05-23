@@ -3,7 +3,6 @@ import jwt, {Secret} from "jsonwebtoken";
 import asyncHandler, {ICustomRequest} from "../helpers/middlewares/asyncHandler";
 import User, {IUser} from "../database/models/user.model";
 import crypto from "crypto";
-import sendResetPasswordEmail from "../helpers/emailService/sendResetPasswordEmail";
 import {generateToken} from "../helpers/middlewares/SessionToken";
 import {Request} from "express";
 import process from "node:process";

@@ -18,6 +18,7 @@ const product_model_1 = __importDefault(require("../database/models/product.mode
 const order_model_1 = __importDefault(require("../database/models/order.model"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const calcPrices_1 = __importDefault(require("../helpers/utils/calcPrices"));
+const paginate_1 = require("../helpers/utils/paginate");
 const createOrder = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -68,50 +69,19 @@ exports.createOrder = createOrder;
 const getOrders = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const startIndex = (page - 1) * limit;
-    try {
-        const totalOrders = yield order_model_1.default.countDocuments({});
-        const orders = yield order_model_1.default.find({})
-            .populate("user", "id username")
-            .skip(startIndex)
-            .limit(limit);
-        const totalPages = Math.ceil(totalOrders / limit) || 1;
-        return res.status(200).json({
-            orders,
-            currentPage: page,
-            totalPages,
-            totalOrders,
-        });
-    }
-    catch (error) {
-        return res.status(500).json({ message: "An error occurred while retrieving orders" });
-    }
+    const result = yield (0, paginate_1.paginate)(order_model_1.default, {}, page, limit, null, "user");
+    res.status(200).json(result);
 }));
 exports.getOrders = getOrders;
 /*
 * http://localhost:5000/api/orders?page=3&limit=20
 * */
 const getUserOrders = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
+    var _b;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const startIndex = (page - 1) * limit;
-    try {
-        const totalUserOrders = yield order_model_1.default.countDocuments({ user: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id });
-        const orders = yield order_model_1.default.find({ user: (_c = req.user) === null || _c === void 0 ? void 0 : _c._id })
-            .skip(startIndex)
-            .limit(limit);
-        const totalPages = Math.ceil(totalUserOrders / limit) || 1;
-        res.status(200).json({
-            orders,
-            currentPage: page,
-            totalPages,
-            totalUserOrders,
-        });
-    }
-    catch (error) {
-        return res.status(500).json({ message: "An error occurred while retrieving orders" });
-    }
+    const result = yield (0, paginate_1.paginate)(order_model_1.default, { user: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id }, page, limit);
+    res.status(200).json(result);
 }));
 exports.getUserOrders = getUserOrders;
 /*
@@ -180,7 +150,7 @@ const markOrderAsPaid = (0, asyncHandler_1.default)((req, res) => __awaiter(void
             return res.status(404).json({ message: "Order not found" });
         }
         order.isPaid = true;
-        order.paidAt = new Date(); // Create a new Date object
+        order.paidAt = new Date();
         order.paymentResult = {
             id: req.body.id,
             status: req.body.status,
@@ -203,7 +173,7 @@ const markOrderAsDelivered = (0, asyncHandler_1.default)((req, res) => __awaiter
             return res.status(404).json({ message: "Order not found" });
         }
         order.isDelivered = true;
-        order.deliveredAt = new Date(); // Create a new Date object
+        order.deliveredAt = new Date();
         order.deliveryResult = {
             id: req.body.id,
             status: req.body.status,
