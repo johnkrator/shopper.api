@@ -314,7 +314,7 @@ const resetPassword = asyncHandler(async (req: ICustomRequest, res: Response) =>
 });
 
 const resendResetToken = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {email} = req.body;
+    const {email, mobileNumber} = req.body;
 
     // Find the user by email
     const user = await User.findOne({email});
@@ -336,11 +336,11 @@ const resendResetToken = asyncHandler(async (req: ICustomRequest, res: Response)
     user.resetPasswordExpires = resetPasswordExpires;
     await user.save();
 
-    // Send the new reset password email
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/users/resetPassword/${resetPasswordToken}`;
-    await sendResetPasswordEmail(user.email, resetUrl);
+    // Send the new reset password email and SMS
+    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
+    await sendResetPasswordOTPToUserEmailAndMobile(user.email, mobileNumber, resetUrl);
 
-    res.status(200).json({message: "New reset password email sent"});
+    res.status(200).json({message: "New reset password instructions sent to your email and mobile number"});
 });
 
 const resendVerificationCode = async (req: Request, res: Response) => {
@@ -427,7 +427,7 @@ const handleFacebookAuth = asyncHandler(async (req: ICustomRequest, res: Respons
     const {email, name, facebookPhotoUrl} = req.body;
 
     try {
-        const user = await User.findOne({email});
+        let user = await User.findOne({email}).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
             const token = jwt.sign({id: user._id, isAdmin: user.isAdmin}, process.env.JWT_SECRET as Secret);
             const {password, ...rest} = user;
@@ -455,7 +455,8 @@ const handleFacebookAuth = asyncHandler(async (req: ICustomRequest, res: Respons
                 isAdmin: newUser.isAdmin
             }, process.env.JWT_SECRET as Secret, {expiresIn: "1h"});
 
-            const {password, ...userData} = newUser;
+            user = newUser.toObject(); // Convert the Mongoose document to a plain object
+            const {password, ...userData} = user;
             res
                 .status(200)
                 .cookie("access_token", token, {
@@ -472,7 +473,7 @@ const handleGitHubAuth = asyncHandler(async (req: ICustomRequest, res: Response,
     const {email, name, githubPhotoUrl} = req.body;
 
     try {
-        const user = await User.findOne({email});
+        let user = await User.findOne({email}).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
             const token = jwt.sign({id: user._id, isAdmin: user.isAdmin}, process.env.JWT_SECRET as Secret);
             const {password, ...rest} = user;
@@ -484,7 +485,6 @@ const handleGitHubAuth = asyncHandler(async (req: ICustomRequest, res: Response,
                 .json(rest);
         } else {
             const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-
             const hashedPassword = bcrypt.hashSync(generatedPassword, 10);
             const newUser = new User({
                 username: (name ? name.toLowerCase().split(" ").join("") : "") +
@@ -500,7 +500,8 @@ const handleGitHubAuth = asyncHandler(async (req: ICustomRequest, res: Response,
                 isAdmin: newUser.isAdmin
             }, process.env.JWT_SECRET as Secret, {expiresIn: "1h"});
 
-            const {password, ...userData} = newUser;
+            user = newUser.toObject(); // Convert the Mongoose document to a plain object
+            const {password, ...userData} = user;
             res
                 .status(200)
                 .cookie("access_token", token, {
@@ -517,7 +518,7 @@ const handleAppleAuth = asyncHandler(async (req: ICustomRequest, res: Response, 
     const {email, name, applePhotoUrl} = req.body;
 
     try {
-        const user = await User.findOne({email});
+        let user = await User.findOne({email}).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
             const token = jwt.sign({id: user._id, isAdmin: user.isAdmin}, process.env.JWT_SECRET as Secret);
             const {password, ...rest} = user;
@@ -529,7 +530,6 @@ const handleAppleAuth = asyncHandler(async (req: ICustomRequest, res: Response, 
                 .json(rest);
         } else {
             const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-
             const hashedPassword = bcrypt.hashSync(generatedPassword, 10);
             const newUser = new User({
                 username: (name ? name.toLowerCase().split(" ").join("") : "") +
@@ -545,7 +545,8 @@ const handleAppleAuth = asyncHandler(async (req: ICustomRequest, res: Response, 
                 isAdmin: newUser.isAdmin
             }, process.env.JWT_SECRET as Secret, {expiresIn: "1h"});
 
-            const {password, ...userData} = newUser;
+            user = newUser.toObject(); // Convert the Mongoose document to a plain object
+            const {password, ...userData} = user;
             res
                 .status(200)
                 .cookie("access_token", token, {
