@@ -27,6 +27,7 @@ https://shopper-puce.vercel.app/v1/api
 - **Orders**: Creating orders, marking orders as paid or delivered, and fetching order details.
 - **Users**: User authentication, registration, login, profile management, and role assignment.
 - **Authentication**: Support for user authentication using JWT tokens.
+- **Notification**: Sending notifications to users via email and sms using Twilio.
 - **Miscellaneous**: Additional features like fetching total orders, calculating total sales, and more.
 
 ## API Endpoints

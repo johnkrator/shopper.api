@@ -53,7 +53,7 @@ const updateCurrentUserProfile = asyncHandler(async (req: ICustomRequest, res: R
 
         const updatedUser = await user.save();
 
-        generateToken(res, updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
+        await generateToken(res, updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
 
         res.status(200).json({
             _id: updatedUser._id,

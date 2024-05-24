@@ -25,12 +25,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleAppleAuth = exports.handleGitHubAuth = exports.handleFacebookAuth = exports.handleGoogleAuth = exports.resendResetToken = exports.resendVerificationCode = exports.resetPassword = exports.forgotPassword = exports.logoutCurrentUser = exports.changePassword = exports.verifyEmail = exports.loginUser = exports.createUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const asyncHandler_1 = __importDefault(require("../helpers/middlewares/asyncHandler"));
 const user_model_1 = __importDefault(require("../database/models/user.model"));
 const crypto_1 = __importDefault(require("crypto"));
 const SessionToken_1 = require("../helpers/middlewares/SessionToken");
-const node_process_1 = __importDefault(require("node:process"));
 const generateOTP_1 = require("../helpers/middlewares/generateOTP");
 const sendResetPasswordOTPToUserEmailAndMobile_1 = require("../helpers/emailService/sendResetPasswordOTPToUserEmailAndMobile");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -99,6 +97,7 @@ const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, vo
             // Reset failed login attempts on successful login
             existingUser.failedLoginAttempts = 0;
             existingUser.lockUntil = null;
+            yield existingUser.save();
             const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
             res.status(200).json({
                 _id: existingUser._id,
@@ -313,14 +312,11 @@ const handleGoogleAuth = (0, asyncHandler_1.default)((req, res, next) => __await
     try {
         const user = yield user_model_1.default.findOne({ email });
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, user._id, user.username, user.isAdmin, user.roles);
             const _b = user.toObject(), { password } = _b, rest = __rest(_b, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(rest);
+                .json(Object.assign(Object.assign({}, rest), { accessToken, refreshToken }));
         }
         else {
             const generatedPassword = Math.random().toString(36).slice(-8) +
@@ -334,17 +330,11 @@ const handleGoogleAuth = (0, asyncHandler_1.default)((req, res, next) => __await
                 profilePicture: googlePhotoUrl,
             });
             yield newUser.save();
-            const token = jsonwebtoken_1.default.sign({
-                id: newUser._id,
-                isAdmin: newUser.isAdmin,
-            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
             const _c = newUser.toObject(), { password } = _c, userData = __rest(_c, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(userData);
+                .json(Object.assign(Object.assign({}, userData), { accessToken, refreshToken }));
         }
     }
     catch (error) {
@@ -357,14 +347,11 @@ const handleFacebookAuth = (0, asyncHandler_1.default)((req, res, next) => __awa
     try {
         let user = yield user_model_1.default.findOne({ email }).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, user._id, user.username, user.isAdmin, user.roles);
             const { password } = user, rest = __rest(user, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(rest);
+                .json(Object.assign(Object.assign({}, rest), { accessToken, refreshToken }));
         }
         else {
             const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
@@ -377,18 +364,12 @@ const handleFacebookAuth = (0, asyncHandler_1.default)((req, res, next) => __awa
                 profilePicture: facebookPhotoUrl,
             });
             yield newUser.save();
-            const token = jsonwebtoken_1.default.sign({
-                id: newUser._id,
-                isAdmin: newUser.isAdmin
-            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
             user = newUser.toObject(); // Convert the Mongoose document to a plain object
             const { password } = user, userData = __rest(user, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(userData);
+                .json(Object.assign(Object.assign({}, userData), { accessToken, refreshToken }));
         }
     }
     catch (error) {
@@ -401,14 +382,11 @@ const handleGitHubAuth = (0, asyncHandler_1.default)((req, res, next) => __await
     try {
         let user = yield user_model_1.default.findOne({ email }).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, user._id, user.username, user.isAdmin, user.roles);
             const { password } = user, rest = __rest(user, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(rest);
+                .json(Object.assign(Object.assign({}, rest), { accessToken, refreshToken }));
         }
         else {
             const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
@@ -421,18 +399,12 @@ const handleGitHubAuth = (0, asyncHandler_1.default)((req, res, next) => __await
                 profilePicture: githubPhotoUrl,
             });
             yield newUser.save();
-            const token = jsonwebtoken_1.default.sign({
-                id: newUser._id,
-                isAdmin: newUser.isAdmin
-            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
             user = newUser.toObject(); // Convert the Mongoose document to a plain object
             const { password } = user, userData = __rest(user, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(userData);
+                .json(Object.assign(Object.assign({}, userData), { accessToken, refreshToken }));
         }
     }
     catch (error) {
@@ -445,14 +417,11 @@ const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaite
     try {
         let user = yield user_model_1.default.findOne({ email }).lean(); // Use .lean() to get a plain JavaScript object
         if (user) {
-            const token = jsonwebtoken_1.default.sign({ id: user._id, isAdmin: user.isAdmin }, node_process_1.default.env.JWT_SECRET);
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, user._id, user.username, user.isAdmin, user.roles);
             const { password } = user, rest = __rest(user, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(rest);
+                .json(Object.assign(Object.assign({}, rest), { accessToken, refreshToken }));
         }
         else {
             const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
@@ -465,18 +434,12 @@ const handleAppleAuth = (0, asyncHandler_1.default)((req, res, next) => __awaite
                 profilePicture: applePhotoUrl,
             });
             yield newUser.save();
-            const token = jsonwebtoken_1.default.sign({
-                id: newUser._id,
-                isAdmin: newUser.isAdmin
-            }, node_process_1.default.env.JWT_SECRET, { expiresIn: "1h" });
+            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, newUser._id, newUser.username, newUser.isAdmin, newUser.roles);
             user = newUser.toObject(); // Convert the Mongoose document to a plain object
             const { password } = user, userData = __rest(user, ["password"]);
             res
                 .status(200)
-                .cookie("access_token", token, {
-                httpOnly: true,
-            })
-                .json(userData);
+                .json(Object.assign(Object.assign({}, userData), { accessToken, refreshToken }));
         }
     }
     catch (error) {
