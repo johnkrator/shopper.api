@@ -108,6 +108,7 @@ const loginUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
             // Reset failed login attempts on successful login
             existingUser.failedLoginAttempts = 0;
             existingUser.lockUntil = null;
+            await existingUser.save();
 
             const {
                 accessToken,
