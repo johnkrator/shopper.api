@@ -55,7 +55,7 @@ const updateCurrentUserProfile = (0, asyncHandler_1.default)((req, res) => __awa
             user.password = yield bcryptjs_1.default.hash(req.body.password, salt);
         }
         const updatedUser = yield user.save();
-        (0, SessionToken_1.generateToken)(res, updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
+        yield (0, SessionToken_1.generateToken)(res, updatedUser._id, updatedUser.username, updatedUser.isAdmin, updatedUser.roles);
         res.status(200).json({
             _id: updatedUser._id,
             username: updatedUser.username,
