@@ -1,15 +1,14 @@
 import bcrypt from "bcryptjs";
-import jwt, {Secret} from "jsonwebtoken";
 import asyncHandler, {ICustomRequest} from "../helpers/middlewares/asyncHandler";
 import User, {IUser} from "../database/models/user.model";
 import crypto from "crypto";
 import {generateToken} from "../helpers/middlewares/SessionToken";
 import {Request} from "express";
-import process from "node:process";
 import {generateOTP} from "../helpers/middlewares/generateOTP";
 import {
     sendResetPasswordOTPToUserEmailAndMobile
-} from "../helpers/emailService/sendResetPasswordOTPToUserEmailAndMobile";
+} from "../helpers/smsService/sendResetPasswordOTPToUserEmailAndMobile";
+import {changePasswordSchema, forgotPasswordSchema, loginSchema, userSchema} from "../helpers/utils/user.validation";
 
 interface Response {
     status(code: number): Response;
@@ -29,36 +28,23 @@ interface VerifyEmailBody {
 }
 
 const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {username, email, password, mobileNumber} = req.body;
-
-    // Password validation regex
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-    if (!username || !email || !password || !mobileNumber) {
-        return res.status(400).json({message: "Please provide all the required fields"});
-    }
-
-    if (!passwordRegex.test(password)) {
-        return res.status(400).json({
-            message: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-        });
-    }
-
-    const userExists = await User.findOne({email});
-    if (userExists) {
-        return res.status(400).json({message: "User already exists"});
-    }
-
-    const phoneNumberExists = await User.findOne({mobileNumber});
-    if (phoneNumberExists) {
-        return res.status(400).json({message: "Mobile number already exists"});
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     try {
-        // Generate and send the verification OTP
+        const {username, email, password, mobileNumber} = req.body;
+        await userSchema.validateAsync({username, email, password, mobileNumber});
+
+        const userExists = await User.findOne({email});
+        if (userExists) {
+            return res.status(400).json({message: "User already exists"});
+        }
+
+        const phoneNumberExists = await User.findOne({mobileNumber});
+        if (phoneNumberExists) {
+            return res.status(400).json({message: "Mobile number already exists"});
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
         const {verificationCode, verificationCodeExpires} = await generateOTP(email, mobileNumber);
 
         const newUser = new User({
@@ -88,53 +74,57 @@ const createUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
 });
 
 const loginUser = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {email, password} = req.body;
+    try {
+        const {email, password} = req.body;
+        await loginSchema.validateAsync({email, password});
 
-    const existingUser = await User.findOne({email, isDeleted: false});
+        const existingUser = await User.findOne({email, isDeleted: false});
 
-    if (existingUser) {
-        if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
-            const timeUntilUnlock = Math.ceil((existingUser.lockUntil.getTime() - Date.now()) / 1000); // Calculate time until unlock in seconds
-            return res.status(401).json({message: `Account locked. Please try again in ${timeUntilUnlock} seconds.`});
-        }
-
-        if (!existingUser.isVerified) {
-            return res.status(401).json({message: "Email not verified. Please verify your email before logging in."});
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, existingUser.password);
-
-        if (isPasswordValid) {
-            // Reset failed login attempts on successful login
-            existingUser.failedLoginAttempts = 0;
-            existingUser.lockUntil = null;
-            await existingUser.save();
-
-            const {
-                accessToken,
-                refreshToken
-            } = await generateToken(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
-
-            res.status(200).json({
-                _id: existingUser._id,
-                username: existingUser.username,
-                email: existingUser.email,
-                isAdmin: existingUser.isAdmin,
-                accessToken,
-                refreshToken,
-            });
-        } else {
-            // Increment failed login attempts and lock user after 5 attempts
-            existingUser.failedLoginAttempts += 1;
-            if (existingUser.failedLoginAttempts >= 5) {
-                existingUser.lockUntil = new Date(Date.now() + 60 * 1000); // Lock user for 1 minute
+        if (existingUser) {
+            if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
+                const timeUntilUnlock = Math.ceil((existingUser.lockUntil.getTime() - Date.now()) / 1000);
+                return res.status(401).json({message: `Account locked. Please try again in ${timeUntilUnlock} seconds.`});
             }
-            await existingUser.save();
 
-            return res.status(400).json({message: "Invalid credentials"});
+            if (!existingUser.isVerified) {
+                return res.status(401).json({message: "Email not verified. Please verify your email before logging in."});
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, existingUser.password);
+
+            if (isPasswordValid) {
+                existingUser.failedLoginAttempts = 0;
+                existingUser.lockUntil = null;
+                await existingUser.save();
+
+                const {
+                    accessToken,
+                    refreshToken
+                } = await generateToken(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+
+                res.status(200).json({
+                    _id: existingUser._id,
+                    username: existingUser.username,
+                    email: existingUser.email,
+                    isAdmin: existingUser.isAdmin,
+                    accessToken,
+                    refreshToken,
+                });
+            } else {
+                existingUser.failedLoginAttempts += 1;
+                if (existingUser.failedLoginAttempts >= 5) {
+                    existingUser.lockUntil = new Date(Date.now() + 60 * 1000);
+                }
+                await existingUser.save();
+
+                return res.status(400).json({message: "Invalid credentials"});
+            }
+        } else {
+            return res.status(404).json({message: "User not found"});
         }
-    } else {
-        return res.status(404).json({message: "User not found"});
+    } catch (error) {
+        console.error("Failed to login user:", error);
+        res.status(400).json({message: "Invalid login credentials"});
     }
 });
 
@@ -176,22 +166,7 @@ const changePassword = asyncHandler(async (req: ICustomRequest, res: Response) =
     const {currentPassword, newPassword} = req.body;
     const userId = req.user?.userId;
 
-    // Password validation regex
-    const passwordRegex =
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-    if (!currentPassword || !newPassword) {
-        return res
-            .status(400)
-            .json({message: "Please provide all the required fields"});
-    }
-
-    if (!passwordRegex.test(newPassword)) {
-        return res.status(400).json({
-            message:
-                "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-        });
-    }
+    await changePasswordSchema.validateAsync({currentPassword, newPassword});
 
     const user = await User.findById(userId);
 
@@ -236,6 +211,12 @@ const logoutCurrentUser = asyncHandler(async (_req: ICustomRequest, res: Respons
 
 const forgotPassword = asyncHandler(async (req: ICustomRequest, res: Response) => {
     const {email, mobileNumber} = req.body;
+
+    try {
+        await forgotPasswordSchema.validateAsync({email, mobileNumber});
+    } catch (error) {
+        return res.status(400).json({message: "Invalid email or mobile number"});
+    }
 
     // Find the user by email
     const user = await User.findOne({email});
@@ -311,36 +292,6 @@ const resetPassword = asyncHandler(async (req: ICustomRequest, res: Response) =>
     await user.save();
 
     res.status(200).json({message: "Password reset successful"});
-});
-
-const resendResetToken = asyncHandler(async (req: ICustomRequest, res: Response) => {
-    const {email, mobileNumber} = req.body;
-
-    // Find the user by email
-    const user = await User.findOne({email});
-
-    if (!user) {
-        return res.status(404).json({message: "User not found"});
-    }
-
-    // Generate a new reset password token
-    const resetPasswordToken = crypto.randomBytes(20).toString("hex");
-    const resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
-
-    // Hash the reset token
-    // Set the new reset password token and expiration time
-    user.resetPasswordToken = crypto
-        .createHash("sha256")
-        .update(resetPasswordToken)
-        .digest("hex");
-    user.resetPasswordExpires = resetPasswordExpires;
-    await user.save();
-
-    // Send the new reset password email and SMS
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
-    await sendResetPasswordOTPToUserEmailAndMobile(user.email, mobileNumber, resetUrl);
-
-    res.status(200).json({message: "New reset password instructions sent to your email and mobile number"});
 });
 
 const resendVerificationCode = async (req: Request, res: Response) => {
@@ -545,7 +496,6 @@ export {
     forgotPassword,
     resetPassword,
     resendVerificationCode,
-    resendResetToken,
     handleGoogleAuth,
     handleFacebookAuth,
     handleGitHubAuth,

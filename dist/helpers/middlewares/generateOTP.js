@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateOTP = void 0;
-const sendRegistrationOTPToUserEmailAndMobile_1 = require("../emailService/sendRegistrationOTPToUserEmailAndMobile");
+const sendRegistrationOTPToUserEmailAndMobile_1 = require("../smsService/sendRegistrationOTPToUserEmailAndMobile");
 const generateOTP = (email, mobileNumber) => __awaiter(void 0, void 0, void 0, function* () {
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
     const verificationCodeExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now

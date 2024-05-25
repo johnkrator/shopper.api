@@ -35,16 +35,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendRegistrationOTPToUserEmailAndMobile = void 0;
+exports.sendResetPasswordOTPToUserEmailAndMobile = void 0;
 const process = __importStar(require("node:process"));
 const twilio_1 = require("twilio");
-const sendRegistrationVerificationEmail_1 = __importDefault(require("./sendRegistrationVerificationEmail"));
 const google_libphonenumber_1 = require("google-libphonenumber");
+const sendResetPasswordEmail_1 = __importDefault(require("../emailService/sendResetPasswordEmail"));
 const phoneUtil = google_libphonenumber_1.PhoneNumberUtil.getInstance();
-const sendRegistrationOTPToUserEmailAndMobile = (email, mobileNumber, otp) => __awaiter(void 0, void 0, void 0, function* () {
+const sendResetPasswordOTPToUserEmailAndMobile = (email, mobileNumber, otp) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Send OTP to email
-        yield (0, sendRegistrationVerificationEmail_1.default)(email, otp);
+        yield (0, sendResetPasswordEmail_1.default)(email, otp);
         // Send OTP to mobile number using Twilio
         const accountSid = process.env.TWILIO_ACCOUNT_SID;
         const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -61,9 +61,9 @@ const sendRegistrationOTPToUserEmailAndMobile = (email, mobileNumber, otp) => __
         // Format the mobile number using google-libphonenumber
         const formattedMobileNumber = phoneUtil.format(phoneUtil.parseAndKeepRawInput(mobileNumber, "US"), google_libphonenumber_1.PhoneNumberFormat.E164);
         // Define a title-like heading for the SMS message
-        const smsTitle = "Verification Code";
+        const smsMessage = `Reset your password by following this link: ${otp}`;
         yield client.messages.create({
-            body: `${smsTitle}\nYour OTP is: ${otp}`,
+            body: smsMessage,
             from: fromNumber,
             to: formattedMobileNumber,
         });
@@ -72,5 +72,5 @@ const sendRegistrationOTPToUserEmailAndMobile = (email, mobileNumber, otp) => __
         console.error(error);
     }
 });
-exports.sendRegistrationOTPToUserEmailAndMobile = sendRegistrationOTPToUserEmailAndMobile;
-//# sourceMappingURL=sendRegistrationOTPToUserEmailAndMobile.js.map
+exports.sendResetPasswordOTPToUserEmailAndMobile = sendResetPasswordOTPToUserEmailAndMobile;
+//# sourceMappingURL=sendResetPasswordOTPToUserEmailAndMobile.js.map
