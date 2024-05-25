@@ -1,4 +1,4 @@
-import {sendRegistrationOTPToUserEmailAndMobile} from "../emailService/sendRegistrationOTPToUserEmailAndMobile";
+import {sendRegistrationOTPToUserEmailAndMobile} from "../smsService/sendRegistrationOTPToUserEmailAndMobile";
 
 export const generateOTP = async (email: string, mobileNumber: string) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000);

@@ -1,6 +1,6 @@
 import * as process from "node:process";
 import {Twilio} from "twilio";
-import sendRegistrationVerificationEmail from "./sendRegistrationVerificationEmail";
+import sendRegistrationVerificationEmail from "../emailService/sendRegistrationVerificationEmail";
 import {PhoneNumberUtil, PhoneNumberFormat} from "google-libphonenumber";
 
 const phoneUtil = PhoneNumberUtil.getInstance();
