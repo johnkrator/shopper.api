@@ -9,7 +9,6 @@ import {
     handleGoogleAuth,
     loginUser,
     logoutCurrentUser,
-    resendResetToken,
     resendVerificationCode,
     resetPassword,
     verifyEmail
@@ -24,7 +23,6 @@ authRouter.post("/login", loginUser);
 authRouter.post("/change-password", verifyToken, changePassword);
 authRouter.post("/verify-email", verifyEmail);
 authRouter.post("/resendVerificationCode", resendVerificationCode);
-authRouter.post("/resendResetToken", resendResetToken);
 authRouter.post("/forgotPassword", forgotPassword);
 authRouter.put("/resetPassword", resetPassword);
 authRouter.post("/logout", logoutCurrentUser);

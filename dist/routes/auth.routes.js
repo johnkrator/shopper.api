@@ -12,7 +12,6 @@ authRouter.post("/login", auth_controller_1.loginUser);
 authRouter.post("/change-password", verifyToken_1.default, auth_controller_1.changePassword);
 authRouter.post("/verify-email", auth_controller_1.verifyEmail);
 authRouter.post("/resendVerificationCode", auth_controller_1.resendVerificationCode);
-authRouter.post("/resendResetToken", auth_controller_1.resendResetToken);
 authRouter.post("/forgotPassword", auth_controller_1.forgotPassword);
 authRouter.put("/resetPassword", auth_controller_1.resetPassword);
 authRouter.post("/logout", auth_controller_1.logoutCurrentUser);

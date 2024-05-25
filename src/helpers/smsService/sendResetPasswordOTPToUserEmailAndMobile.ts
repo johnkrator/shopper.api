@@ -1,7 +1,7 @@
 import * as process from "node:process";
 import {Twilio} from "twilio";
 import {PhoneNumberUtil, PhoneNumberFormat} from "google-libphonenumber";
-import sendResetPasswordEmail from "./sendResetPasswordEmail";
+import sendResetPasswordEmail from "../emailService/sendResetPasswordEmail";
 
 const phoneUtil = PhoneNumberUtil.getInstance();
 

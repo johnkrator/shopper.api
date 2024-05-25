@@ -23,38 +23,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleAppleAuth = exports.handleGitHubAuth = exports.handleFacebookAuth = exports.handleGoogleAuth = exports.resendResetToken = exports.resendVerificationCode = exports.resetPassword = exports.forgotPassword = exports.logoutCurrentUser = exports.changePassword = exports.verifyEmail = exports.loginUser = exports.createUser = void 0;
+exports.handleAppleAuth = exports.handleGitHubAuth = exports.handleFacebookAuth = exports.handleGoogleAuth = exports.resendVerificationCode = exports.resetPassword = exports.forgotPassword = exports.logoutCurrentUser = exports.changePassword = exports.verifyEmail = exports.loginUser = exports.createUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const asyncHandler_1 = __importDefault(require("../helpers/middlewares/asyncHandler"));
 const user_model_1 = __importDefault(require("../database/models/user.model"));
 const crypto_1 = __importDefault(require("crypto"));
 const SessionToken_1 = require("../helpers/middlewares/SessionToken");
 const generateOTP_1 = require("../helpers/middlewares/generateOTP");
-const sendResetPasswordOTPToUserEmailAndMobile_1 = require("../helpers/emailService/sendResetPasswordOTPToUserEmailAndMobile");
+const sendResetPasswordOTPToUserEmailAndMobile_1 = require("../helpers/smsService/sendResetPasswordOTPToUserEmailAndMobile");
+const user_validation_1 = require("../helpers/utils/user.validation");
 const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, email, password, mobileNumber } = req.body;
-    // Password validation regex
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!username || !email || !password || !mobileNumber) {
-        return res.status(400).json({ message: "Please provide all the required fields" });
-    }
-    if (!passwordRegex.test(password)) {
-        return res.status(400).json({
-            message: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-        });
-    }
-    const userExists = yield user_model_1.default.findOne({ email });
-    if (userExists) {
-        return res.status(400).json({ message: "User already exists" });
-    }
-    const phoneNumberExists = yield user_model_1.default.findOne({ mobileNumber });
-    if (phoneNumberExists) {
-        return res.status(400).json({ message: "Mobile number already exists" });
-    }
-    const salt = yield bcryptjs_1.default.genSalt(10);
-    const hashedPassword = yield bcryptjs_1.default.hash(password, salt);
     try {
-        // Generate and send the verification OTP
+        const { username, email, password, mobileNumber } = req.body;
+        yield user_validation_1.userSchema.validateAsync({ username, email, password, mobileNumber });
+        const userExists = yield user_model_1.default.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ message: "User already exists" });
+        }
+        const phoneNumberExists = yield user_model_1.default.findOne({ mobileNumber });
+        if (phoneNumberExists) {
+            return res.status(400).json({ message: "Mobile number already exists" });
+        }
+        const salt = yield bcryptjs_1.default.genSalt(10);
+        const hashedPassword = yield bcryptjs_1.default.hash(password, salt);
         const { verificationCode, verificationCodeExpires } = yield (0, generateOTP_1.generateOTP)(email, mobileNumber);
         const newUser = new user_model_1.default({
             username,
@@ -82,44 +73,49 @@ const createUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, v
 }));
 exports.createUser = createUser;
 const loginUser = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password } = req.body;
-    const existingUser = yield user_model_1.default.findOne({ email, isDeleted: false });
-    if (existingUser) {
-        if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
-            const timeUntilUnlock = Math.ceil((existingUser.lockUntil.getTime() - Date.now()) / 1000); // Calculate time until unlock in seconds
-            return res.status(401).json({ message: `Account locked. Please try again in ${timeUntilUnlock} seconds.` });
-        }
-        if (!existingUser.isVerified) {
-            return res.status(401).json({ message: "Email not verified. Please verify your email before logging in." });
-        }
-        const isPasswordValid = yield bcryptjs_1.default.compare(password, existingUser.password);
-        if (isPasswordValid) {
-            // Reset failed login attempts on successful login
-            existingUser.failedLoginAttempts = 0;
-            existingUser.lockUntil = null;
-            yield existingUser.save();
-            const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
-            res.status(200).json({
-                _id: existingUser._id,
-                username: existingUser.username,
-                email: existingUser.email,
-                isAdmin: existingUser.isAdmin,
-                accessToken,
-                refreshToken,
-            });
+    try {
+        const { email, password } = req.body;
+        yield user_validation_1.loginSchema.validateAsync({ email, password });
+        const existingUser = yield user_model_1.default.findOne({ email, isDeleted: false });
+        if (existingUser) {
+            if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
+                const timeUntilUnlock = Math.ceil((existingUser.lockUntil.getTime() - Date.now()) / 1000);
+                return res.status(401).json({ message: `Account locked. Please try again in ${timeUntilUnlock} seconds.` });
+            }
+            if (!existingUser.isVerified) {
+                return res.status(401).json({ message: "Email not verified. Please verify your email before logging in." });
+            }
+            const isPasswordValid = yield bcryptjs_1.default.compare(password, existingUser.password);
+            if (isPasswordValid) {
+                existingUser.failedLoginAttempts = 0;
+                existingUser.lockUntil = null;
+                yield existingUser.save();
+                const { accessToken, refreshToken } = yield (0, SessionToken_1.generateToken)(res, existingUser._id, existingUser.username, existingUser.isAdmin, existingUser.roles);
+                res.status(200).json({
+                    _id: existingUser._id,
+                    username: existingUser.username,
+                    email: existingUser.email,
+                    isAdmin: existingUser.isAdmin,
+                    accessToken,
+                    refreshToken,
+                });
+            }
+            else {
+                existingUser.failedLoginAttempts += 1;
+                if (existingUser.failedLoginAttempts >= 5) {
+                    existingUser.lockUntil = new Date(Date.now() + 60 * 1000);
+                }
+                yield existingUser.save();
+                return res.status(400).json({ message: "Invalid credentials" });
+            }
         }
         else {
-            // Increment failed login attempts and lock user after 5 attempts
-            existingUser.failedLoginAttempts += 1;
-            if (existingUser.failedLoginAttempts >= 5) {
-                existingUser.lockUntil = new Date(Date.now() + 60 * 1000); // Lock user for 1 minute
-            }
-            yield existingUser.save();
-            return res.status(400).json({ message: "Invalid credentials" });
+            return res.status(404).json({ message: "User not found" });
         }
     }
-    else {
-        return res.status(404).json({ message: "User not found" });
+    catch (error) {
+        console.error("Failed to login user:", error);
+        res.status(400).json({ message: "Invalid login credentials" });
     }
 }));
 exports.loginUser = loginUser;
@@ -156,18 +152,7 @@ const changePassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 
     var _a;
     const { currentPassword, newPassword } = req.body;
     const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-    // Password validation regex
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!currentPassword || !newPassword) {
-        return res
-            .status(400)
-            .json({ message: "Please provide all the required fields" });
-    }
-    if (!passwordRegex.test(newPassword)) {
-        return res.status(400).json({
-            message: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-        });
-    }
+    yield user_validation_1.changePasswordSchema.validateAsync({ currentPassword, newPassword });
     const user = yield user_model_1.default.findById(userId);
     if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -201,6 +186,12 @@ const logoutCurrentUser = (0, asyncHandler_1.default)((_req, res) => __awaiter(v
 exports.logoutCurrentUser = logoutCurrentUser;
 const forgotPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, mobileNumber } = req.body;
+    try {
+        yield user_validation_1.forgotPasswordSchema.validateAsync({ email, mobileNumber });
+    }
+    catch (error) {
+        return res.status(400).json({ message: "Invalid email or mobile number" });
+    }
     // Find the user by email
     const user = yield user_model_1.default.findOne({ email });
     if (!user) {
@@ -262,30 +253,6 @@ const resetPassword = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0
     res.status(200).json({ message: "Password reset successful" });
 }));
 exports.resetPassword = resetPassword;
-const resendResetToken = (0, asyncHandler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, mobileNumber } = req.body;
-    // Find the user by email
-    const user = yield user_model_1.default.findOne({ email });
-    if (!user) {
-        return res.status(404).json({ message: "User not found" });
-    }
-    // Generate a new reset password token
-    const resetPasswordToken = crypto_1.default.randomBytes(20).toString("hex");
-    const resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
-    // Hash the reset token
-    // Set the new reset password token and expiration time
-    user.resetPasswordToken = crypto_1.default
-        .createHash("sha256")
-        .update(resetPasswordToken)
-        .digest("hex");
-    user.resetPasswordExpires = resetPasswordExpires;
-    yield user.save();
-    // Send the new reset password email and SMS
-    const resetUrl = `${req.protocol}://${req.get("host")}/api/auth/resetPassword/${resetPasswordToken}`;
-    yield (0, sendResetPasswordOTPToUserEmailAndMobile_1.sendResetPasswordOTPToUserEmailAndMobile)(user.email, mobileNumber, resetUrl);
-    res.status(200).json({ message: "New reset password instructions sent to your email and mobile number" });
-}));
-exports.resendResetToken = resendResetToken;
 const resendVerificationCode = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, mobileNumber } = req.body;
