@@ -86,6 +86,8 @@ request to `/v1/api/categories`.
 - **PUT** `/v1/api/users/:id` - Update a user by ID (requires admin authorization)
 - **PUT** `/v1/api/users/assign-role/:id` - Assign a role to a user (requires admin authorization)
 - **PUT** `/v1/api/users/delete-role/:id` - Delete a role from a user (requires admin authorization)
+- **PUT** `v1/api/assign-role/:id` - Assign a role to a user (requires admin authorization)
+- **PUT** `v1/api/delete-role/:id` - Delete a role from a user (requires admin authorization)
 
 ### Upload Routes
 
